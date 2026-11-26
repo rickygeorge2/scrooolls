@@ -1,0 +1,205 @@
+'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { dayName, dayStart, daysAgoOf } from '@/lib/dates';
+import { enablePush, isIOS, isStandalone, pushStatus } from '@/lib/pushClient';
+import InstallSheet from './InstallSheet';
+import { Bell, Check, Down, Up } from './Icons';
+
+export default function Feed({ profile }) {
+  const router = useRouter();
+  const [themes, setThemes] = useState({});
+  const [genres, setGenres] = useState({});
+  const [mode, setMode] = useState({ kind: 'day', day: 0 }); // or { kind: 'genre', id, name }
+  const [queue, setQueue] = useState([]);
+  const [idx, setIdx] = useState(0);
+  const [olderDay, setOlderDay] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState(null); // 'enable' | 'install'
+  const [sheet, setSheet] = useState(false);
+  const read = useRef(new Set());
+  const start = useRef(null);
+  const lastWheel = useRef(0);
+
+  // Lookups for theme colours and genre names
+  useEffect(() => {
+    Promise.all([supabase.from('themes').select('*'), supabase.from('genres').select('*')]).then(([t, g]) => {
+      setThemes(Object.fromEntries((t.data || []).map((x) => [x.id, x])));
+      setGenres(Object.fromEntries((g.data || []).map((x) => [x.id, x])));
+    });
+    const status = pushStatus();
+    if (status === 'default') setBanner('enable');
+    else if (status === 'unsupported' && isIOS() && !isStandalone()) setBanner('install');
+  }, []);
+
+  // Read ?genre= and ?story= from the address
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('genre')) setMode({ kind: 'genre', id: Number(q.get('genre')), name: q.get('name') || 'Genre' });
+  }, []);
+
+  const loadDay = useCallback(async (day) => {
+    setLoading(true);
+    const from = dayStart(day), to = dayStart(day - 1);
+    const { data: stories } = await supabase.from('stories').select('*').eq('status', 'published')
+      .gte('published_at', from.toISOString()).lt('published_at', to.toISOString()).order('published_at', { ascending: false });
+    const list = stories || [];
+    if (list.length) {
+      const { data: reads } = await supabase.from('reads').select('story_id').eq('user_id', profile.id).in('story_id', list.map((s) => s.id));
+      (reads || []).forEach((r) => read.current.add(r.story_id));
+    }
+    // Today: only what you haven't read. Older days: unread, or everything if you've read it all.
+    const unread = list.filter((s) => !read.current.has(s.id));
+    let q = day === 0 || unread.length ? unread : list;
+    // Opened from a notification? Put that story first.
+    const wanted = new URLSearchParams(window.location.search).get('story');
+    if (wanted && day === 0) {
+      const { data: s } = await supabase.from('stories').select('*').eq('id', wanted).maybeSingle();
+      if (s) q = [s, ...q.filter((x) => x.id !== s.id)];
+      window.history.replaceState(null, '', '/');
+    }
+    const { data: older } = await supabase.from('stories').select('published_at').eq('status', 'published')
+      .lt('published_at', from.toISOString()).order('published_at', { ascending: false }).limit(1);
+    setOlderDay(older && older[0] ? daysAgoOf(older[0].published_at) : null);
+    setQueue(q);
+    setIdx(0);
+    setLoading(false);
+  }, [profile.id]);
+
+  const loadGenre = useCallback(async (id) => {
+    setLoading(true);
+    const { data } = await supabase.from('stories').select('*').eq('status', 'published').eq('genre_id', id)
+      .order('published_at', { ascending: false }).limit(50);
+    setQueue(data || []);
+    setIdx(0);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (mode.kind === 'day') loadDay(mode.day); else loadGenre(mode.id);
+  }, [mode, loadDay, loadGenre]);
+
+  const markRead = useCallback((story) => {
+    if (!story || read.current.has(story.id)) return;
+    read.current.add(story.id);
+    supabase.from('reads').upsert({ user_id: profile.id, story_id: story.id }, { onConflict: 'user_id,story_id', ignoreDuplicates: true }).then(() => {});
+  }, [profile.id]);
+
+  const next = useCallback(() => {
+    setIdx((i) => { markRead(queue[i]); return Math.min(i + 1, queue.length); });
+  }, [queue, markRead]);
+  const prev = useCallback(() => setIdx((i) => Math.max(i - 1, 0)), []);
+
+  function onPointerDown(e) { start.current = { x: e.clientX, y: e.clientY }; }
+  function onPointerUp(e) {
+    if (!start.current) return;
+    const dx = e.clientX - start.current.x, dy = e.clientY - start.current.y;
+    start.current = null;
+    if (Math.abs(dx) > Math.abs(dy)) { if (dx < -60) router.push('/discover'); }
+    else if (dy < -40) next();
+    else if (dy > 40) prev();
+  }
+  function onWheel(e) {
+    const now = Date.now();
+    if (now - lastWheel.current < 650 || Math.abs(e.deltaY) < 12) return;
+    lastWheel.current = now;
+    if (e.deltaY > 0) next(); else prev();
+  }
+
+  async function turnOn() {
+    try {
+      const r = await enablePush(profile.id);
+      if (r === 'install-first') { setSheet(true); return; }
+      setBanner(null);
+    } catch { setBanner(null); }
+  }
+
+  const label = mode.kind === 'genre' ? mode.name : dayName(mode.day);
+  const atEnd = idx >= queue.length;
+  const counter = loading ? '' : atEnd ? label + ' · all read' : label + ' · ' + (idx + 1) + ' / ' + queue.length;
+
+  return (
+    <div className="feed">
+      <header className="feed-head">
+        <div className="brand">Scrooolls</div>
+        <div className="row" style={{ gap: 6 }}>
+          <span className="small muted" style={{ fontWeight: 600 }}>{counter}</span>
+          <Link href="/discover" className="btn outline small" style={{ height: 36, borderRadius: 999 }}>Discover</Link>
+        </div>
+      </header>
+
+      {banner && (
+        <div className="row between" style={{ padding: '10px 14px', background: '#FFF6DA', fontSize: 14, gap: 12 }}>
+          <span className="row" style={{ gap: 8 }}><Bell c="#15171C" />{banner === 'enable' ? 'Get notified about new stories' : 'Add Scrooolls to your home screen to get notifications'}</span>
+          <button className="btn small" onClick={banner === 'enable' ? turnOn : () => setSheet(true)}>{banner === 'enable' ? 'Turn on' : 'How'}</button>
+        </div>
+      )}
+
+      <div className="feed-body" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onWheel={onWheel}>
+        {loading ? (
+          <div className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p className="muted">Loading stories…</p></div>
+        ) : (
+          <>
+            {queue.map((s, i) => {
+              const theme = themes[s.theme_id];
+              const genre = genres[s.genre_id];
+              const isToday = daysAgoOf(s.published_at) === 0;
+              return (
+                <article key={s.id} className="story" style={{ transform: `translateY(${(i - idx) * 100}%)` }} aria-hidden={i !== idx}>
+                  <div className="story-img" style={{ background: theme?.color || '#FFD666' }}>
+                    {s.image_url ? <img src={s.image_url} alt="" draggable="false" /> : (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: '#2A2D36' }}>{theme?.name || 'Scrooolls'}</div>
+                        <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 34, lineHeight: 1.05 }}>{genre?.name || ''}</div>
+                      </>
+                    )}
+                    {isToday && mode.kind === 'day' && <span className="story-day">New today</span>}
+                    {genre && <span className="story-tag">{genre.name}</span>}
+                  </div>
+                  <div className="story-text">
+                    <h2>{s.title}</h2>
+                    <p>{s.summary}</p>
+                    <div className="small" style={{ color: 'var(--soft)', fontSize: 12 }}>
+                      {theme ? theme.name + ' · ' : ''}by {s.author_name || 'Scrooolls'} · swipe left for Discover
+                    </div>
+                  </div>
+                  {s.link ? (
+                    <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => markRead(s)} tabIndex={i === idx ? 0 : -1}>
+                      <strong style={{ fontSize: 15 }}>Tap to read more</strong>
+                      <span style={{ fontSize: 12, color: '#C9CCD6' }}>Opens the full article</span>
+                    </a>
+                  ) : (
+                    <div className="read-more"><strong style={{ fontSize: 15 }}>Swipe up for the next story</strong></div>
+                  )}
+                </article>
+              );
+            })}
+            <section className="story" style={{ transform: `translateY(${(queue.length - idx) * 100}%)`, background: 'var(--ground)', justifyContent: 'center', padding: '40px 28px', gap: 16 }} aria-hidden={!atEnd}>
+              <div style={{ width: 64, height: 64, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check /></div>
+              <h2 className="title">{mode.kind === 'genre' ? 'That’s everything in ' + mode.name : mode.day === 0 ? (queue.length ? 'You’re all caught up for today' : 'No new stories yet today') : 'You’re all caught up'}</h2>
+              <p className="lead">
+                {mode.kind === 'genre' ? 'Head back to your daily feed for today’s stories.'
+                  : mode.day === 0 ? 'You’ve read everything posted today. We’ll notify you the moment a new story goes up.'
+                  : 'That’s everything from ' + dayName(mode.day).toLowerCase() + '.'}
+              </p>
+              {mode.kind === 'day' && olderDay !== null && (
+                <button className="btn" onClick={() => setMode({ kind: 'day', day: olderDay })}>Read {dayName(olderDay).toLowerCase()}’s stories</button>
+              )}
+              {(mode.kind === 'genre' || mode.day !== 0) && (
+                <button className="btn outline" onClick={() => { window.history.replaceState(null, '', '/'); setMode({ kind: 'day', day: 0 }); }}>Back to today</button>
+              )}
+              <Link className="btn ghost" href="/discover">Browse contributors and themes</Link>
+            </section>
+            <div className="nav-arrows">
+              <button onClick={prev} aria-label="Previous story"><Up /></button>
+              <button onClick={next} aria-label="Next story"><Down /></button>
+            </div>
+          </>
+        )}
+      </div>
+      {sheet && <InstallSheet onClose={() => setSheet(false)} />}
+    </div>
+  );
+}
