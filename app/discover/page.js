@@ -92,11 +92,11 @@ export default function Discover() {
       <Link href="/journey" className="card" style={{ textDecoration: 'none', background: 'var(--ink)', color: '#fff', border: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>100</div>
         <div className="grow" style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Read the Gospels in 100 days</div>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>The Gospels in 100 Days</div>
           <div className="small" style={{ color: '#C9CCD6', marginTop: 2 }}>
             {journey?.started
               ? (journey.finished ? 'Completed. Well done!' : `Day ${journey.current_day} · ${journey.streak} day streak${journey.done_today ? ' · done for today' : ''}`)
-              : 'One verse at a time. Start your journey.'}
+              : 'Discover Jesus. One chapter a day.'}
           </div>
         </div>
         <Chevron c="#fff" />

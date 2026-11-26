@@ -58,18 +58,20 @@ def even_plan(days=100):
     for d in range(days):
         a = round(d * n / days) + 1; b = round((d + 1) * n / days)
         plan.append(list(range(a, b + 1)))
-    return plan
+    return [{'seqs': p, 'reading': '', 'section': '', 'theme': ''} for p in plan]
 
 def csv_plan(path):
+    """Columns: day, reading (ranges separated by ';'), optional section, optional theme."""
     plan = []
     for row in csv.reader(open(path, encoding='utf-8-sig')):
         if not row or not row[0].strip().isdigit():
             continue
         seqs = []
-        for part in ';'.join(row[1:]).split(';'):
+        for part in row[1].split(';'):
             if part.strip():
                 seqs += parse_range(part)
-        plan.append(seqs)
+        plan.append({'seqs': seqs, 'reading': row[1].strip(),
+                     'section': row[2].strip() if len(row) > 2 else '', 'theme': row[3].strip() if len(row) > 3 else ''})
     return plan
 
 plan = csv_plan(sys.argv[1]) if len(sys.argv) > 1 else even_plan()
@@ -77,10 +79,12 @@ os.makedirs(OUT, exist_ok=True)
 for f in os.listdir(OUT):
     os.remove(os.path.join(OUT, f))
 summary = []
-for i, seqs in enumerate(plan, start=1):
+for i, p in enumerate(plan, start=1):
+    seqs = p['seqs']
     items = [{'ref': ref(by_seq[s]), 'text': by_seq[s]['text']} for s in seqs]
-    lab = label(seqs[0], seqs[-1])
-    json.dump({'day': i, 'label': lab, 'verses': items}, open(os.path.join(OUT, f'day-{i}.json'), 'w', encoding='utf-8'), ensure_ascii=False)
-    summary.append({'day': i, 'label': lab, 'count': len(items)})
+    lab = p['reading'] or label(seqs[0], seqs[-1])
+    meta = {'day': i, 'label': lab, 'section': p['section'], 'theme': p['theme'], 'count': len(items)}
+    json.dump({**meta, 'verses': items}, open(os.path.join(OUT, f'day-{i}.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+    summary.append(meta)
 json.dump({'translation': 'World English Bible', 'days': summary}, open(os.path.join(OUT, 'plan.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print(f'{len(plan)} days, {sum(s["count"] for s in summary)} verses; day 1 = {summary[0]["label"]} ({summary[0]["count"]}), day {len(plan)} = {summary[-1]["label"]} ({summary[-1]["count"]})')

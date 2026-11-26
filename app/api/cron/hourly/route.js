@@ -75,7 +75,7 @@ export async function GET(request) {
     const day = plan.days[j.current_day - 1];
     report.journey += await sendToSubscriptions(subs, {
       title: `Day ${j.current_day} of 100 is ready`,
-      body: day ? `${day.label} · ${day.count} scrolls. Keep your streak going!` : 'Your Gospel reading is ready.',
+      body: day ? `${day.label}${day.theme ? ' · ' + day.theme : ''} · ${day.count} scrolls. Keep your streak going!` : 'Your Gospel reading is ready.',
       url: '/journey', tag: 'journey',
     });
   }

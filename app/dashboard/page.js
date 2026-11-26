@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { authHeader, useAuth } from '@/lib/useAuth';
 import BulkUpload from '@/components/BulkUpload';
 import Analytics from '@/components/Analytics';
+import JourneyAdmin from '@/components/JourneyAdmin';
 import { lookupVerse } from '@/lib/bible';
 
 const STATUS = {
@@ -124,7 +125,7 @@ export default function Dashboard() {
   const pendingStories = stories.filter((s) => s.status === 'pending').length;
   const pendingApps = apps.filter((a) => a.status === 'pending').length;
   const nav = isAdmin
-    ? [['analytics', 'Analytics', 0], ['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['tax', 'Themes & genres', 0]]
+    ? [['analytics', 'Analytics', 0], ['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['journey', '100-day journey', 0], ['tax', 'Themes & genres', 0]]
     : [['stories', 'My stories', 0], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0]];
   const themeName = (id) => themes.find((t) => t.id === id)?.name || '—';
   const genreName = (id) => genres.find((g) => g.id === id)?.name || '—';
@@ -224,6 +225,7 @@ export default function Dashboard() {
         )}
 
         {tab === 'analytics' && isAdmin && <Analytics flash={flash} />}
+        {tab === 'journey' && isAdmin && <JourneyAdmin flash={flash} />}
 
         {tab === 'apps' && isAdmin && <Applications apps={apps} reload={loadAdmin} flash={flash} />}
         {tab === 'push' && isAdmin && <Push log={log} reload={loadAdmin} flash={flash} />}

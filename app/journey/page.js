@@ -68,8 +68,15 @@ export default function Journey() {
   }
 
   async function openReading() {
-    const day = await loadDay(state.current_day);
-    setReading({ day: day.day, label: day.label, verses: day.verses, idx: Math.min(state.position, day.verses.length - 1) });
+    const [day, { data: extra }] = await Promise.all([
+      loadDay(state.current_day),
+      supabase.from('journey_content').select('discover, reflect, respond').eq('day', state.current_day).maybeSingle(),
+    ]);
+    // Read every verse, then Discover, Reflect and Respond (when written for that day)
+    const cards = day.verses.map((v) => ({ kind: 'verse', ref: v.ref, text: v.text }));
+    [['discover', 'Discover', 'A short explanation'], ['reflect', 'Reflect', 'One insight to hold on to'], ['respond', 'Respond', 'A question for your life today']]
+      .forEach(([k, title, sub]) => { if (extra && extra[k] && extra[k].trim()) cards.push({ kind: k, ref: title, sub, text: extra[k].trim() }); });
+    setReading({ day: day.day, label: day.label, verses: cards, idx: Math.min(state.position, cards.length - 1) });
   }
 
   const advance = useCallback(async () => {
@@ -128,10 +135,22 @@ export default function Journey() {
         <div className="feed-body" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onWheel={onWheel}>
           {reading.verses.map((v, i) => (
             <section key={i} className="story" aria-hidden={i !== reading.idx}
-              style={{ transform: `translateY(${(i - reading.idx) * 100}%)`, background: 'var(--ground)', justifyContent: 'center', padding: '32px 28px', gap: 20 }}>
-              <div className="small" style={{ fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--soft)' }}>{v.ref}</div>
-              <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: v.text.length > 220 ? 22 : 26, lineHeight: 1.5, color: '#1F2128' }}>{v.text}</p>
-              <div className="small muted" style={{ marginTop: 12 }}>{i === total - 1 ? 'Swipe up to finish today’s reading' : 'Swipe up for the next verse'}</div>
+              style={{ transform: `translateY(${(i - reading.idx) * 100}%)`, background: v.kind === 'verse' ? 'var(--ground)' : v.kind === 'discover' ? '#E3ECFA' : v.kind === 'reflect' ? '#FFF1C7' : '#DDF1E3', justifyContent: 'center', padding: '32px 28px', gap: 20, overflowY: 'auto' }}>
+              {v.kind === 'verse' ? (
+                <>
+                  <div className="small" style={{ fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--soft)' }}>{v.ref}</div>
+                  <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: v.text.length > 220 ? 22 : 26, lineHeight: 1.5, color: '#1F2128' }}>{v.text}</p>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <h2 style={{ fontSize: 34 }}>{v.ref}</h2>
+                    <div className="small" style={{ color: '#3A3E4A', marginTop: 4 }}>{v.sub}</div>
+                  </div>
+                  <p style={{ fontSize: v.text.length > 300 ? 18 : 21, lineHeight: 1.55, color: '#1F2128', whiteSpace: 'pre-line' }}>{v.text}</p>
+                </>
+              )}
+              <div className="small muted" style={{ marginTop: 12 }}>{i === total - 1 ? 'Swipe up to finish today’s reading' : 'Swipe up to keep going'}</div>
             </section>
           ))}
           <div className="nav-arrows" style={{ top: 'auto', bottom: 24 }}>
@@ -163,7 +182,7 @@ export default function Journey() {
         )}
         <div className="row" style={{ gap: 8, fontSize: 18, fontWeight: 700 }}><Flame size={28} /> {done.streak} day streak</div>
         <p className="lead">
-          {done.finished ? 'You’ve read all four Gospels. Amazing.' : `${TOTAL_DAYS - done.completed_days} days to go. Day ${done.current_day} unlocks tomorrow, and we’ll remind you at ${hourLabel(done.reminder_hour)}.`}
+          {done.finished ? 'You’ve read all four Gospels. The goal isn’t just to finish reading about Jesus. It’s to become more like Him.' : `${TOTAL_DAYS - done.completed_days} days to go. Day ${done.current_day} unlocks tomorrow, and we’ll remind you at ${hourLabel(done.reminder_hour)}.`}
         </p>
         <button className="btn" style={{ alignSelf: 'stretch' }} onClick={() => setDone(null)}>Done</button>
       </main>
@@ -177,8 +196,18 @@ export default function Journey() {
         <Link href="/discover" className="icon-btn" aria-label="Back"><Back /></Link>
         <div className="stack" style={{ gap: 10 }}>
           <div className="small" style={{ fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--soft)' }}>100-day challenge</div>
-          <h1 className="title">Read the Gospels in 100 days</h1>
-          <p className="lead">Matthew, Mark, Luke and John, one verse at a time. About {Math.round(plan.days.reduce((a, d) => a + d.count, 0) / plan.days.length)} scrolls a day, roughly 5 minutes. Keep your streak going and earn badges along the way.</p>
+          <h1 className="title">The Gospels in 100 Days</h1>
+          <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 22 }}>Discover Jesus.</p>
+          <p className="lead">Four Gospels. One hundred days. A closer look at Jesus. One chapter a day, one verse at a time, about 5–10 minutes, followed by a moment to reflect.</p>
+          <div className="row" style={{ gap: 10 }}>
+            {[['89', 'Chapters'], ['100', 'Days'], ['~1', 'Chapter a day']].map(([n, l]) => (
+              <div key={l} className="card grow" style={{ textAlign: 'center', padding: 12 }}>
+                <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 24 }}>{n}</div>
+                <div className="small muted">{l}</div>
+              </div>
+            ))}
+          </div>
+          <p className="small" style={{ fontStyle: 'italic', color: '#3A3E4A' }}>The goal isn’t just to finish reading about Jesus. It’s to become more like Him.</p>
         </div>
         <div className="row" style={{ gap: 4, justifyContent: 'space-between', flexWrap: 'wrap' }}>
           {BADGES.map((b) => <Badge key={b.days} badge={b} earned size={52} />)}
@@ -210,7 +239,7 @@ export default function Journey() {
         </div>
       </div>
       <div className="stack" style={{ gap: 8 }}>
-        <h1 className="title">Read the Gospels in 100 days</h1>
+        <h1 className="title">The Gospels in 100 Days</h1>
         <div className="row between small"><span style={{ fontWeight: 700 }}>{state.completed_days} of {TOTAL_DAYS} days</span><span className="muted">{pct}%</span></div>
         <div style={{ height: 10, borderRadius: 5, background: '#ECE9E1' }} role="progressbar" aria-valuemin={0} aria-valuemax={TOTAL_DAYS} aria-valuenow={state.completed_days}>
           <div style={{ height: '100%', width: pct + '%', background: 'var(--ink)', borderRadius: 5 }} />
@@ -229,8 +258,8 @@ export default function Journey() {
         </div>
       ) : (
         <div className="card stack" style={{ gap: 12, padding: 20, background: 'var(--ink)', color: '#fff', border: 0 }}>
-          <div className="small" style={{ color: '#C9CCD6', fontWeight: 600 }}>Day {state.current_day} · today’s reading</div>
-          <h2 style={{ fontSize: 24 }}>{today?.label}</h2>
+          <div className="small" style={{ color: '#C9CCD6', fontWeight: 600 }}>Day {state.current_day} · {today?.section}</div>
+          <h2 style={{ fontSize: 24 }}>{today?.label}{today?.theme ? ' · ' + today.theme : ''}</h2>
           <div className="small" style={{ color: '#C9CCD6' }}>
             {state.position > 0 ? `${today.count - state.position} of ${today.count} scrolls left` : `${today?.count} scrolls`}
           </div>
@@ -243,7 +272,7 @@ export default function Journey() {
         <div className="row" style={{ gap: 4, justifyContent: 'space-between', flexWrap: 'wrap' }}>
           {BADGES.map((b) => <Badge key={b.days} badge={b} earned={earned.has(b.days)} size={56} />)}
         </div>
-        <p className="small muted">Earn a badge at 10, 25, 50, 75 and 100 days of reading. Best streak so far: {state.best_streak} days.</p>
+        <p className="small muted">Finish a day’s reading to grow your streak. Earn a badge at 10, 25, 50, 75 and 100 days. Best streak so far: {state.best_streak} days.</p>
       </div>
 
       <div className="stack" style={{ gap: 8 }}>
