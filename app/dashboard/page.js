@@ -7,6 +7,8 @@ import { authHeader, useAuth } from '@/lib/useAuth';
 import BulkUpload from '@/components/BulkUpload';
 import Analytics from '@/components/Analytics';
 import JourneyAdmin from '@/components/JourneyAdmin';
+import PartnerEditor, { PartnersAdmin } from '@/components/PartnerEditor';
+import { slugify } from '@/lib/partners';
 import { lookupVerse } from '@/lib/bible';
 
 const STATUS = {
@@ -34,7 +36,8 @@ export default function Dashboard() {
   const [readers, setReaders] = useState(null);
 
   const isAdmin = profile?.role === 'admin';
-  const isStaff = isAdmin || profile?.role === 'contributor';
+  const isStaff = isAdmin || profile?.role === 'contributor' || profile?.role === 'partner';
+  const isPartner = profile?.role === 'partner';
 
   const flash = useCallback((m) => { setToast(m); setTimeout(() => setToast(''), 3500); }, []);
 
@@ -125,8 +128,8 @@ export default function Dashboard() {
   const pendingStories = stories.filter((s) => s.status === 'pending').length;
   const pendingApps = apps.filter((a) => a.status === 'pending').length;
   const nav = isAdmin
-    ? [['analytics', 'Analytics', 0], ['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['journey', '100-day journey', 0], ['tax', 'Themes & genres', 0]]
-    : [['stories', 'My stories', 0], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0]];
+    ? [['analytics', 'Analytics', 0], ['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['partners', 'Partners', 0], ['journey', '100-day journey', 0], ['tax', 'Themes & genres', 0]]
+    : [['stories', 'My stories', 0], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ...(isPartner ? [['page', 'Partner page', 0]] : [])];
   const themeName = (id) => themes.find((t) => t.id === id)?.name || '—';
   const genreName = (id) => genres.find((g) => g.id === id)?.name || '—';
 
@@ -160,7 +163,7 @@ export default function Dashboard() {
                 onClick={() => { setNameDraft(profile.name || ''); setEditingName(true); }}>Edit</button>
             </div>
           )}
-          <span className="pill" style={{ background: 'var(--accent)', color: 'var(--ink)', alignSelf: 'flex-start' }}>{isAdmin ? 'Admin' : 'Contributor'}</span>
+          <span className="pill" style={{ background: 'var(--accent)', color: 'var(--ink)', alignSelf: 'flex-start' }}>{isAdmin ? 'Admin' : isPartner ? 'Partner' : 'Contributor'}</span>
           <Link href="/" className="btn small" style={{ background: 'transparent', border: '1px solid #4A4E5A' }}>Open the app</Link>
           <button className="btn small" style={{ background: 'transparent', border: '1px solid #4A4E5A' }} onClick={signOut}>Sign out</button>
         </div>
@@ -226,6 +229,16 @@ export default function Dashboard() {
 
         {tab === 'analytics' && isAdmin && <Analytics flash={flash} />}
         {tab === 'journey' && isAdmin && <JourneyAdmin flash={flash} />}
+        {tab === 'partners' && isAdmin && <PartnersAdmin flash={flash} />}
+        {tab === 'page' && isPartner && (
+          <>
+            <div>
+              <h1 className="title">Partner page</h1>
+              <p className="muted" style={{ marginTop: 6, maxWidth: 720 }}>How your organization appears in Scrooolls: on your page, and on the bar under each of your stories.</p>
+            </div>
+            <PartnerEditor profileId={profile.id} flash={flash} />
+          </>
+        )}
 
         {tab === 'apps' && isAdmin && <Applications apps={apps} reload={loadAdmin} flash={flash} />}
         {tab === 'push' && isAdmin && <Push log={log} reload={loadAdmin} flash={flash} />}
@@ -378,7 +391,21 @@ function Applications({ apps, reload, flash }) {
   async function decide(a, status) {
     const { error } = await supabase.from('applications').update({ status, decided_at: new Date().toISOString() }).eq('id', a.id);
     if (error) return flash(error.message);
-    if (status === 'approved') {
+    if (status === 'approved' && a.kind === 'partner') {
+      // Organization partner: give them the partner role and create their branded page
+      const { error: e2 } = await supabase.from('profiles').update({ role: 'partner', name: a.org_name, bio: (a.about || '').slice(0, 140) }).eq('id', a.user_id);
+      if (e2) return flash(e2.message);
+      const ans = a.answers || {};
+      const base = slugify(a.org_name);
+      let slug = base, n = 1;
+      while ((await supabase.from('partners').select('profile_id').eq('slug', slug).maybeSingle()).data) slug = base + '-' + ++n;
+      const { error: e3 } = await supabase.from('partners').upsert({
+        profile_id: a.user_id, slug, name: a.org_name, bio: (ans.vision || a.about || '').slice(0, 140),
+        website: a.org_website || null, instagram: ans.instagram || null, youtube: ans.youtube || null, linkedin: ans.linkedin || null,
+      });
+      if (e3) return flash(e3.message);
+      flash(a.org_name + ' is now a partner. Their page is at /p/' + slug);
+    } else if (status === 'approved') {
       const { error: e2 } = await supabase.from('profiles').update({ role: 'contributor', bio: a.topic }).eq('id', a.user_id);
       if (e2) return flash(e2.message);
       flash((a.profiles?.name || 'They') + ' can now publish from the dashboard');
@@ -388,7 +415,7 @@ function Applications({ apps, reload, flash }) {
   return (
     <>
       <div>
-        <h1 className="title">Contributor applications</h1>
+        <h1 className="title">Applications</h1>
         <p className="muted" style={{ marginTop: 6 }}>Approving someone gives them access to this dashboard the next time they open it.</p>
       </div>
       {apps.length === 0 && <p className="muted">No applications yet.</p>}
@@ -396,11 +423,22 @@ function Applications({ apps, reload, flash }) {
         {apps.map((a) => (
           <div key={a.id} className="card stack" style={{ padding: 20, gap: 10 }}>
             <div>
-              <div style={{ fontWeight: 700 }}>{a.profiles?.name || 'Unnamed'}</div>
-              <div className="small muted">{a.profiles?.email}</div>
+              <span className="pill" style={{ background: a.kind === 'partner' ? 'var(--accent)' : '#F1EFEA', marginBottom: 6 }}>{a.kind === 'partner' ? 'Organization partner' : 'Individual contributor'}</span>
+              <div style={{ fontWeight: 700 }}>{a.kind === 'partner' ? a.org_name : a.profiles?.name || 'Unnamed'}</div>
+              <div className="small muted">{a.kind === 'partner' ? (a.profiles?.name || '') + ' · ' : ''}{a.profiles?.email}</div>
             </div>
-            <div style={{ fontSize: 14 }}><strong>Wants to write:</strong> {a.topic}</div>
-            {a.about && <div style={{ fontSize: 14, lineHeight: 1.5, color: '#3A3E4A' }}>{a.about}</div>}
+            {a.kind === 'partner' ? (
+              <div className="stack" style={{ gap: 6, fontSize: 14, lineHeight: 1.5 }}>
+                {a.org_website && <a href={a.org_website} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>{a.org_website.replace(/^https?:\/\//, '')}</a>}
+                {[['What they do', a.about], ['Vision', a.answers?.vision], ['Mission', a.answers?.mission], ['Who they serve', a.answers?.audience], ['Would share', a.answers?.content], ['Contact', a.answers?.contact]]
+                  .filter(([, v]) => v).map(([l, v]) => <div key={l}><strong>{l}:</strong> <span style={{ color: '#3A3E4A' }}>{v}</span></div>)}
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 14 }}><strong>Wants to write:</strong> {a.topic}</div>
+                {a.about && <div style={{ fontSize: 14, lineHeight: 1.5, color: '#3A3E4A' }}>{a.about}</div>}
+              </>
+            )}
             {a.sample_link && <a className="small" href={a.sample_link} target="_blank" rel="noopener noreferrer">View sample</a>}
             <div className="small muted">Applied {fmt(a.created_at)}</div>
             {a.status === 'pending' ? (

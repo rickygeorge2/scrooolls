@@ -8,6 +8,8 @@ import { enablePush, pushStatus } from '@/lib/pushClient';
 import InstallSheet from '@/components/InstallSheet';
 import { Back, Chevron } from '@/components/Icons';
 import { useActivity } from '@/lib/useActivity';
+import { loadPartners } from '@/lib/partners';
+import { PartnerLogo } from '@/components/PartnerHeader';
 
 const HOURS = [5, 6, 7, 8, 9, 10];
 const hourLabel = (h) => (h > 12 ? h - 12 : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
@@ -24,6 +26,7 @@ export default function Discover() {
   const [push, setPush] = useState('default');
   const [sheet, setSheet] = useState(false);
   const [journey, setJourney] = useState(null);
+  const [partners, setPartners] = useState({});
   const start = useRef(null);
   useActivity(profile?.id);
 
@@ -37,6 +40,7 @@ export default function Discover() {
     supabase.from('follows').select('contributor_id').eq('user_id', profile.id).then(({ data }) => setFollows((data || []).map((r) => r.contributor_id)));
     supabase.from('user_themes').select('theme_id').eq('user_id', profile.id).then(({ data }) => setPicked((data || []).map((r) => r.theme_id)));
     setPush(pushStatus());
+    loadPartners(true).then(setPartners);
     supabase.rpc('journey_state').then(({ data }) => setJourney(data || { started: false }));
   }, [profile]);
 
@@ -81,7 +85,7 @@ export default function Discover() {
   }
 
   if (!profile) return <main className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p className="muted">Loading…</p></main>;
-  const staff = profile.role === 'admin' || profile.role === 'contributor';
+  const staff = ['admin', 'contributor', 'partner'].includes(profile.role);
 
   return (
     <main className="screen" onPointerDown={onPointerDown} onPointerUp={onPointerUp} style={{ gap: 16 }}>
@@ -110,15 +114,28 @@ export default function Discover() {
       {tab === 'contributors' && (
         <div className="stack" style={{ gap: 10 }}>
           {people.length === 0 && <p className="muted">Contributors will appear here once they’re approved.</p>}
-          {people.map((p) => {
+          {[...people].sort((a, b) => (partners[b.id] ? 1 : 0) - (partners[a.id] ? 1 : 0)).map((p) => {
             const on = follows.includes(p.id);
+            const pt = partners[p.id];
             return (
               <div key={p.id} className="card row" style={{ gap: 12 }}>
-                <div className="avatar">{(p.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}</div>
-                <div className="grow" style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700 }}>{p.name}</div>
-                  {p.bio && <div className="small muted">{p.bio}</div>}
-                </div>
+                {pt ? (
+                  <Link href={'/p/' + pt.slug} className="row grow" style={{ gap: 12, minWidth: 0, textDecoration: 'none' }}>
+                    <PartnerLogo partner={pt} size={46} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700 }}>{pt.name} <span className="pill" style={{ background: 'var(--accent)', fontSize: 10, padding: '2px 8px', marginLeft: 4 }}>Partner</span></div>
+                      {pt.bio && <div className="small muted">{pt.bio}</div>}
+                    </div>
+                  </Link>
+                ) : (
+                  <>
+                    <div className="avatar">{(p.name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}</div>
+                    <div className="grow" style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700 }}>{p.name}</div>
+                      {p.bio && <div className="small muted">{p.bio}</div>}
+                    </div>
+                  </>
+                )}
                 <button className={'btn small' + (on ? '' : ' outline')} style={{ borderRadius: 999, minWidth: 92 }} onClick={() => toggleFollow(p.id)}>{on ? 'Following' : 'Follow'}</button>
               </div>
             );
@@ -126,7 +143,7 @@ export default function Discover() {
           {!staff && (
             <Link href="/apply" className="card" style={{ background: 'var(--ink)', color: '#fff', textDecoration: 'none', marginTop: 8 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>Become a contributor</div>
-              <div className="small" style={{ color: '#C9CCD6', marginTop: 4 }}>Write a series on hope, joy or anything in Scripture. Apply and an admin will review it.</div>
+              <div className="small" style={{ color: '#C9CCD6', marginTop: 4 }}>Write a series on hope, joy or anything in Scripture, on your own or as an organization partner with your own branded page. Apply and an admin will review it.</div>
             </Link>
           )}
         </div>

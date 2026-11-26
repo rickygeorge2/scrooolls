@@ -118,3 +118,6 @@ alter table public.stories
 -- "Read the Gospels in 100 days" (journeys, journey_badges and the journey_* functions)
 -- was applied to the live project as the Supabase migration "gospel_journey" on 26 Nov 2026.
 -- Reading files live in public/journey/ and are built with scripts/build_journey.py.
+
+-- Organization partners (partner role, partners table, application kind/answers, follower_count)
+-- were applied to the live project as migrations "organization_partners" and "follower_count" on 27 Nov 2026.

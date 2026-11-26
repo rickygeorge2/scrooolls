@@ -7,6 +7,8 @@ import { dayName, dayStart, daysAgoOf } from '@/lib/dates';
 import { enablePush, isIOS, isStandalone, pushStatus } from '@/lib/pushClient';
 import InstallSheet from './InstallSheet';
 import VerseSheet from './VerseSheet';
+import { PartnerLogo } from './PartnerHeader';
+import { loadPartners, myFollows, setFollow } from '@/lib/partners';
 import { useActivity } from '@/lib/useActivity';
 import { Bell, Check, Down, Up } from './Icons';
 
@@ -22,12 +24,26 @@ export default function Feed({ profile }) {
   const [banner, setBanner] = useState(null); // 'enable' | 'install'
   const [sheet, setSheet] = useState(false);
   const [verseStory, setVerseStory] = useState(null);
+  const [partners, setPartners] = useState({});
+  const [follows, setFollows] = useState(new Set());
   const read = useRef(new Set());
   const start = useRef(null);
   const lastWheel = useRef(0);
   useActivity(profile.id);
 
   // Lookups for theme colours and genre names
+  useEffect(() => {
+    loadPartners().then(setPartners);
+    myFollows(profile.id).then(setFollows);
+  }, [profile.id]);
+
+  async function toggleFollow(partnerId) {
+    const on = !follows.has(partnerId);
+    const nextSet = new Set(follows); if (on) nextSet.add(partnerId); else nextSet.delete(partnerId);
+    setFollows(nextSet);
+    await setFollow(profile.id, partnerId, on);
+  }
+
   useEffect(() => {
     Promise.all([supabase.from('themes').select('*'), supabase.from('genres').select('*')]).then(([t, g]) => {
       setThemes(Object.fromEntries((t.data || []).map((x) => [x.id, x])));
@@ -179,9 +195,30 @@ export default function Feed({ profile }) {
                   <div className="story-text">
                     <h2>{s.title}</h2>
                     <p>{s.summary}</p>
-                    <div className="small" style={{ color: 'var(--soft)', fontSize: 12 }}>
-                      {theme ? theme.name + ' · ' : ''}by {s.author_name || 'Scrooolls'} · swipe left for Discover
-                    </div>
+                    {partners[s.author_id] ? (() => {
+                      const pt = partners[s.author_id];
+                      const on = follows.has(pt.profile_id);
+                      return (
+                        <div className="row" style={{ gap: 10, padding: '8px 10px', borderRadius: 14, background: pt.bg_color, color: pt.text_color, marginTop: 2 }}>
+                          <Link href={'/p/' + pt.slug} className="row grow" style={{ gap: 10, minWidth: 0, color: pt.text_color, textDecoration: 'none' }} tabIndex={i === idx ? 0 : -1}>
+                            <PartnerLogo partner={pt} size={34} />
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pt.name}</span>
+                              <span style={{ display: 'block', fontSize: 11, opacity: 0.8 }}>{theme ? theme.name + ' · ' : ''}View profile</span>
+                            </span>
+                          </Link>
+                          <button onClick={() => toggleFollow(pt.profile_id)} aria-pressed={on} tabIndex={i === idx ? 0 : -1}
+                            style={{ height: 34, padding: '0 14px', borderRadius: 999, fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+                              background: on ? 'transparent' : pt.text_color, color: on ? pt.text_color : pt.bg_color, border: `1.5px solid ${pt.text_color}` }}>
+                            {on ? 'Following' : 'Follow'}
+                          </button>
+                        </div>
+                      );
+                    })() : (
+                      <div className="small" style={{ color: 'var(--soft)', fontSize: 12 }}>
+                        {theme ? theme.name + ' · ' : ''}by {s.author_name || 'Scrooolls'} · swipe left for Discover
+                      </div>
+                    )}
                   </div>
                   {s.verse_text ? (
                     <button className="read-more" style={{ border: 0, textAlign: 'left', cursor: 'pointer', font: 'inherit' }} tabIndex={i === idx ? 0 : -1}

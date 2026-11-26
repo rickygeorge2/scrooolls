@@ -10,7 +10,7 @@ const TRANSLATION = 'web';
 // Looks up a Bible reference (e.g. "John 3:16", "Romans 15:13-14", "Psalm 23") and returns its text.
 export async function GET(request) {
   const caller = await getCaller(request);
-  if (!caller || !['admin', 'contributor'].includes(caller.role)) {
+  if (!caller || !['admin', 'contributor', 'partner'].includes(caller.role)) {
     return NextResponse.json({ error: 'Contributors and admins only' }, { status: 403 });
   }
   const ref = (new URL(request.url).searchParams.get('ref') || '').trim();

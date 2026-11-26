@@ -26,7 +26,7 @@ function directLink(raw) {
 export async function POST(request) {
   try {
     const caller = await getCaller(request);
-    if (!caller || !['admin', 'contributor'].includes(caller.role)) {
+    if (!caller || !['admin', 'contributor', 'partner'].includes(caller.role)) {
       return NextResponse.json({ error: 'Contributors and admins only' }, { status: 403 });
     }
     const { url } = await request.json();
