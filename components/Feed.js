@@ -46,14 +46,15 @@ export default function Feed({ profile }) {
     setLoading(true);
     const from = dayStart(day), to = dayStart(day - 1);
     const { data: stories } = await supabase.from('stories').select('*').eq('status', 'published')
-      .gte('published_at', from.toISOString()).lt('published_at', to.toISOString()).order('published_at', { ascending: false });
+      .gte('published_at', from.toISOString()).lt('published_at', to.toISOString()).order('published_at', { ascending: true });
     const list = stories || [];
     if (list.length) {
       const { data: reads } = await supabase.from('reads').select('story_id').eq('user_id', profile.id).in('story_id', list.map((s) => s.id));
       (reads || []).forEach((r) => read.current.add(r.story_id));
     }
-    // Every story from that day stays in the feed, newest first.
-    // You start at the first one you haven't read, and can swipe back to the ones you have.
+    // Every story from that day stays in the feed, oldest at the bottom and newest at the top:
+    // swipe up for newer stories, swipe down for older ones. You start at the oldest one you
+    // haven't read yet, so swiping up always brings something new.
     let q = list;
     let startAt = q.findIndex((s) => !read.current.has(s.id));
     if (startAt === -1) startAt = q.length; // all read: start on the "caught up" card
@@ -64,7 +65,7 @@ export default function Feed({ profile }) {
       if (found >= 0) startAt = found;
       else {
         const { data: s } = await supabase.from('stories').select('*').eq('id', wanted).maybeSingle();
-        if (s) { q = [s, ...q]; startAt = 0; }
+        if (s) { q = [...q, s]; startAt = q.length - 1; }
       }
       window.history.replaceState(null, '', '/');
     }
@@ -80,8 +81,9 @@ export default function Feed({ profile }) {
     setLoading(true);
     const { data } = await supabase.from('stories').select('*').eq('status', 'published').eq('genre_id', id)
       .order('published_at', { ascending: false }).limit(50);
-    setQueue(data || []);
-    setIdx(0);
+    const list = (data || []).reverse(); // oldest → newest, so swiping down goes back in time
+    setQueue(list);
+    setIdx(Math.max(list.length - 1, 0)); // start on the newest
     setLoading(false);
   }, []);
 
@@ -207,8 +209,8 @@ export default function Feed({ profile }) {
               <Link className="btn ghost" href="/discover">Browse contributors and themes</Link>
             </section>
             <div className="nav-arrows">
-              <button onClick={prev} aria-label="Previous story"><Up /></button>
-              <button onClick={next} aria-label="Next story"><Down /></button>
+              <button onClick={prev} aria-label="Older story"><Up /></button>
+              <button onClick={next} aria-label="Newer story"><Down /></button>
             </div>
           </>
         )}
