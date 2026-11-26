@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { authHeader, useAuth } from '@/lib/useAuth';
+import BulkUpload from '@/components/BulkUpload';
 
 const STATUS = {
   published: ['Published', 'var(--ok-bg)', 'var(--ok)'],
@@ -88,9 +89,12 @@ export default function Dashboard() {
   }
 
   async function approve(s) {
-    const { error } = await supabase.from('stories').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', s.id);
+    // A contributor can ask for a publish date. If it's still ahead, schedule it; otherwise publish now.
+    const later = s.scheduled_for && new Date(s.scheduled_for) > new Date();
+    const { error } = await supabase.from('stories')
+      .update(later ? { status: 'scheduled' } : { status: 'published', published_at: new Date().toISOString() }).eq('id', s.id);
     if (error) return flash(error.message);
-    flash('Published · ' + (await notify(s.id)));
+    flash(later ? 'Approved · scheduled for ' + fmt(s.scheduled_for) + ', with a notification when it goes live' : 'Published · ' + (await notify(s.id)));
     loadStories(); loadAdmin();
   }
   async function decline(s) {
@@ -118,8 +122,8 @@ export default function Dashboard() {
   const pendingStories = stories.filter((s) => s.status === 'pending').length;
   const pendingApps = apps.filter((a) => a.status === 'pending').length;
   const nav = isAdmin
-    ? [['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['tax', 'Themes & genres', 0]]
-    : [['stories', 'My stories', 0], ['new', 'New story', 0]];
+    ? [['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['tax', 'Themes & genres', 0]]
+    : [['stories', 'My stories', 0], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0]];
   const themeName = (id) => themes.find((t) => t.id === id)?.name || '—';
   const genreName = (id) => genres.find((g) => g.id === id)?.name || '—';
 
@@ -179,7 +183,7 @@ export default function Dashboard() {
                     const push = s.notified_at ? 'Sent ✓' : s.status === 'pending' ? 'Sends on approval' : s.status === 'scheduled' ? 'Sends when live' : '—';
                     return (
                       <tr key={s.id}>
-                        <td style={{ fontWeight: 600, maxWidth: 320 }}>{s.title}<div className="small muted" style={{ fontWeight: 400 }}>{s.status === 'scheduled' ? 'Goes live ' + fmt(s.scheduled_for) : fmt(s.published_at || s.created_at)}</div></td>
+                        <td style={{ fontWeight: 600, maxWidth: 320 }}>{s.title}<div className="small muted" style={{ fontWeight: 400 }}>{s.status === 'scheduled' ? 'Goes live ' + fmt(s.scheduled_for) : s.status === 'pending' && s.scheduled_for ? 'Requested for ' + fmt(s.scheduled_for) : fmt(s.published_at || s.created_at)}</div></td>
                         <td>{themeName(s.theme_id)}</td>
                         <td>{genreName(s.genre_id)}</td>
                         <td>{s.author_name}</td>
@@ -210,6 +214,11 @@ export default function Dashboard() {
               if (story.status === 'published') m += ' · ' + (await notify(story.id));
               flash(m); setTab('stories'); loadStories(); if (isAdmin) loadAdmin();
             }} onError={flash} />
+        )}
+
+        {tab === 'bulk' && (
+          <BulkUpload profile={profile} isAdmin={isAdmin} themes={themes} genres={genres} notify={notify} flash={flash}
+            onDone={() => { loadStories(); if (isAdmin) loadAdmin(); }} />
         )}
 
         {tab === 'apps' && isAdmin && <Applications apps={apps} reload={loadAdmin} flash={flash} />}

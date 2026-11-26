@@ -55,6 +55,7 @@ export default function Apply() {
       <form className="stack grow" onSubmit={submit} style={{ gap: 16 }}>
         <label className="field">What would you write about?<input value={form.topic} onChange={set('topic')} placeholder="e.g. a 30-day series on hope" required /></label>
         <label className="field">A little about you<textarea rows={4} value={form.about} onChange={set('about')} placeholder="Your church, ministry or why you want to write" /></label>
+        <p className="small muted" style={{ lineHeight: 1.5 }}>Planning a series? <a href="/scrooolls-template.csv" download style={{ fontWeight: 600 }}>Download the story template</a>, fill it in Google Sheets, and upload it from the dashboard once you’re approved.</p>
         <label className="field"><span>Link to a sample <span className="hint">(optional)</span></span><input type="url" value={form.sample_link} onChange={set('sample_link')} placeholder="https://" /></label>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="grow" />
