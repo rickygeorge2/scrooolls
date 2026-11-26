@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { dayName, dayStart, daysAgoOf } from '@/lib/dates';
 import { enablePush, isIOS, isStandalone, pushStatus } from '@/lib/pushClient';
 import InstallSheet from './InstallSheet';
+import VerseSheet from './VerseSheet';
 import { useActivity } from '@/lib/useActivity';
 import { Bell, Check, Down, Up } from './Icons';
 
@@ -20,6 +21,7 @@ export default function Feed({ profile }) {
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null); // 'enable' | 'install'
   const [sheet, setSheet] = useState(false);
+  const [verseStory, setVerseStory] = useState(null);
   const read = useRef(new Set());
   const start = useRef(null);
   const lastWheel = useRef(0);
@@ -181,7 +183,12 @@ export default function Feed({ profile }) {
                       {theme ? theme.name + ' · ' : ''}by {s.author_name || 'Scrooolls'} · swipe left for Discover
                     </div>
                   </div>
-                  {s.link ? (
+                  {s.verse_text ? (
+                    <button className="read-more" style={{ border: 0, textAlign: 'left', cursor: 'pointer', font: 'inherit' }} tabIndex={i === idx ? 0 : -1}
+                      onClick={() => { markRead(s); setVerseStory(s); }}>
+                      <strong style={{ fontSize: 15 }}>Tap to read {s.verse_ref}</strong>
+                    </button>
+                  ) : s.link ? (
                     <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
                       <strong style={{ fontSize: 15 }}>Tap to read more</strong>
                     </a>
@@ -215,6 +222,7 @@ export default function Feed({ profile }) {
         )}
       </div>
       {sheet && <InstallSheet onClose={() => setSheet(false)} />}
+      {verseStory && <VerseSheet story={verseStory} onClose={() => setVerseStory(null)} onOpenLink={() => openedLink(verseStory)} />}
     </div>
   );
 }

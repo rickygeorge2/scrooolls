@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { authHeader } from '@/lib/useAuth';
 import { mapRows, parseCSV, parseDate, parseTime, toMoment, wordCount } from '@/lib/bulk';
+import { lookupVerse } from '@/lib/bible';
 
 const fmt = (d) => d.toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const byName = (list, name) => list.find((x) => x.name.trim().toLowerCase() === (name || '').trim().toLowerCase());
@@ -16,6 +17,8 @@ function check(row) {
   if (row.time && !parseTime(row.time)) errors.push(`Can’t read the time “${row.time}”. Use 7:00 PM`);
   if (row.link && !/^https?:\/\//i.test(row.link)) errors.push('Read-more link must start with https://');
   if (row.image && !row.file && !/^https:\/\//i.test(row.image)) errors.push('Image link must start with https://');
+  if (row.verse && row.verseState === 'error') errors.push(row.verseError);
+  if (row.verse && row.verseState === 'loading') errors.push('Looking up the Bible verse…');
   if (wordCount(row.summary) > 60) warnings.push(`Summary is ${wordCount(row.summary)} words (aim for 60)`);
   if (row.theme && !row.theme_id) warnings.push(`No theme called “${row.theme}”. Pick one or leave blank`);
   if (row.genre && !row.genre_id) warnings.push(`No genre called “${row.genre}”. Pick one or leave blank`);
@@ -44,10 +47,21 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
     if (!items.length) { setProblem('No stories found in the file. Add one story per row under the header row.'); return; }
     if (items.length > 50) { setProblem('That’s more than 50 stories. Please split it into smaller files.'); return; }
     setFileName(file.name);
-    setRows(items.map((x, i) => ({
+    const fresh = items.map((x, i) => ({
       ...x, key: i, file: null, preview: '', state: 'ready', message: '',
       theme_id: byName(themes, x.theme)?.id || '', genre_id: byName(genres, x.genre)?.id || '',
-    })));
+      verseState: x.verse ? 'loading' : '', verseRef: '', verseText: '', verseTranslation: '', verseError: '',
+    }));
+    setRows(fresh);
+    // Look up every Bible verse, one at a time so the Bible service isn't flooded.
+    for (const row of fresh.filter((x) => x.verse)) await checkVerse(row.key, row.verse);
+  }
+
+  async function checkVerse(key, ref) {
+    update(key, { verseState: 'loading' });
+    const out = await lookupVerse(ref);
+    if (out.error) update(key, { verseState: 'error', verseError: out.error });
+    else update(key, { verseState: 'ok', verseRef: out.reference, verseText: out.text, verseTranslation: out.translation, verseError: '' });
   }
 
   const update = (key, patch) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -85,6 +99,9 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
           title: row.title.trim(), summary: row.summary.trim(), link: row.link.trim() || null, image_url,
           theme_id: row.theme_id ? Number(row.theme_id) : null, genre_id: row.genre_id ? Number(row.genre_id) : null,
           author_id: profile.id, status, scheduled_for: at ? at.toISOString() : null,
+          verse_ref: row.verse && row.verseState === 'ok' ? row.verseRef : null,
+          verse_text: row.verse && row.verseState === 'ok' ? row.verseText : null,
+          verse_translation: row.verse && row.verseState === 'ok' ? row.verseTranslation : null,
         }).select().single();
         if (error) throw error;
         if (status === 'published') { await notify(data.id); pushed += 1; }
@@ -128,6 +145,7 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
         </div>
         <div className="side card stack" style={{ padding: 20, gap: 8, fontSize: 13, lineHeight: 1.55 }}>
           <strong style={{ fontSize: 14 }}>Filling in the sheet</strong>
+          <div><strong>Bible verse:</strong> e.g. John 3:16, Romans 15:13-14 or Psalm 23. Readers tap to read it inside the app.</div>
           <div><strong>Theme, Genre:</strong> use names from Themes &amp; genres, e.g. Hope, Devotional.</div>
           <div><strong>Publish date:</strong> 27/11/2026 (day first). Leave blank to publish right away{isAdmin ? '' : ' once approved'}.</div>
           <div><strong>Publish time:</strong> 7:00 PM or 19:00, in your time zone. Stories go live on the hour.</div>
@@ -185,6 +203,19 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
                         </label>
                       )}
                     </div>
+                    {r.verse && r.state !== 'done' && (
+                      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                        <label className="sr-only" htmlFor={'v' + r.key}>Bible verse, row {i + 1}</label>
+                        <input id={'v' + r.key} value={r.verse} disabled={busy} onChange={(e) => update(r.key, { verse: e.target.value, verseState: 'error', verseError: 'Click Look up to check this verse' })}
+                          style={{ height: 36, borderRadius: 8, border: '1px solid #D6D3CA', padding: '0 8px', width: 180 }} />
+                        <button className="btn small outline" style={{ height: 36 }} disabled={busy || !r.verse.trim()} onClick={() => checkVerse(r.key, r.verse)}>Look up</button>
+                      </div>
+                    )}
+                    {r.verseState === 'ok' && (
+                      <div className="small" style={{ background: '#FAF8F3', borderRadius: 8, padding: '6px 8px', lineHeight: 1.5 }}>
+                        <strong>{r.verseRef}</strong> · <span style={{ fontFamily: 'Georgia, serif' }}>{r.verseText.length > 160 ? r.verseText.slice(0, 157) + '…' : r.verseText}</span>
+                      </div>
+                    )}
                     <div className="small" style={{ color: 'var(--soft)' }}>{timing}{r.link ? ' · has read-more link' : ''}</div>
                     {r.state !== 'done' && c.errors.map((m) => <div key={m} className="small" style={{ color: 'var(--bad)', fontWeight: 600 }}>{m}</div>)}
                     {r.state !== 'done' && c.warnings.map((m) => <div key={m} className="small" style={{ color: 'var(--warn)' }}>{m}</div>)}

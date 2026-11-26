@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { authHeader, useAuth } from '@/lib/useAuth';
 import BulkUpload from '@/components/BulkUpload';
 import Analytics from '@/components/Analytics';
+import { lookupVerse } from '@/lib/bible';
 
 const STATUS = {
   published: ['Published', 'var(--ok-bg)', 'var(--ok)'],
@@ -13,7 +14,7 @@ const STATUS = {
   pending: ['Pending review', 'var(--warn-bg)', 'var(--warn)'],
   rejected: ['Declined', '#F1EFEA', '#3A3E4A'],
 };
-const EMPTY = { title: '', summary: '', link: '', theme_id: '', genre_id: '', when: '' };
+const EMPTY = { title: '', summary: '', link: '', verse: '', theme_id: '', genre_id: '', when: '' };
 const fmt = (d) => (d ? new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '');
 
 export default function Dashboard() {
@@ -237,6 +238,17 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
   const [f, setF] = useState(EMPTY);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
+  const [verse, setVerse] = useState(null); // { state: 'loading' | 'ok' | 'error', reference, text, translation, error }
+
+  async function checkVerse(ref) {
+    ref = (ref ?? f.verse).trim();
+    if (!ref) { setVerse(null); return null; }
+    setVerse({ state: 'loading' });
+    const out = await lookupVerse(ref);
+    const v = out.error ? { state: 'error', error: out.error, ref } : { state: 'ok', ...out, ref };
+    setVerse(v);
+    return v;
+  }
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const words = f.summary.trim() ? f.summary.trim().split(/\s+/).length : 0;
@@ -252,6 +264,9 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
   async function save(status) {
     if (!f.title.trim() || !f.summary.trim()) return onError('Add a title and a summary first.');
     if (status === 'scheduled' && !f.when) return onError('Pick a date and time to schedule it.');
+    let v = verse;
+    if (f.verse.trim() && (!v || v.ref !== f.verse.trim() || v.state !== 'ok')) v = await checkVerse();
+    if (f.verse.trim() && (!v || v.state !== 'ok')) return onError(v?.error || 'Check the Bible verse first.');
     setBusy(true);
     try {
       let image_url = null;
@@ -266,10 +281,13 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
         theme_id: f.theme_id ? Number(f.theme_id) : null, genre_id: f.genre_id ? Number(f.genre_id) : null,
         author_id: profile.id, status,
         scheduled_for: status === 'scheduled' ? new Date(f.when).toISOString() : null,
+        verse_ref: v && f.verse.trim() ? v.reference : null,
+        verse_text: v && f.verse.trim() ? v.text : null,
+        verse_translation: v && f.verse.trim() ? v.translation : null,
       };
       const { data, error } = await supabase.from('stories').insert(row).select().single();
       if (error) throw error;
-      setF(EMPTY); setFile(null); setPreview('');
+      setF(EMPTY); setFile(null); setPreview(''); setVerse(null);
       await onDone(data, status === 'published' ? 'Published' : status === 'scheduled' ? 'Scheduled for ' + fmt(row.scheduled_for) : 'Sent to an admin for review');
     } catch (e) {
       onError(e.message || 'Could not save the story.');
@@ -292,6 +310,23 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
             <textarea rows={5} value={f.summary} onChange={set('summary')} placeholder="Up to 60 words. Include the verse and one takeaway." />
           </label>
           <label className="field"><span>Read-more link <span className="hint">(optional)</span></span><input type="url" value={f.link} onChange={set('link')} placeholder="https://" /></label>
+          <div className="field">
+            <label htmlFor="verse-ref"><span>Bible verse <span className="hint">(optional, e.g. John 3:16 or Psalm 23)</span></span></label>
+            <div className="row" style={{ gap: 8 }}>
+              <input id="verse-ref" className="grow" value={f.verse} placeholder="John 3:16"
+                onChange={(e) => { setF({ ...f, verse: e.target.value }); setVerse(null); }}
+                onBlur={() => f.verse.trim() && checkVerse()} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); checkVerse(); } }} />
+              <button type="button" className="btn small outline" style={{ height: 50 }} onClick={() => checkVerse()} disabled={!f.verse.trim()}>Look up</button>
+            </div>
+            {verse?.state === 'loading' && <span className="hint">Looking it up…</span>}
+            {verse?.state === 'error' && <span className="error" style={{ fontWeight: 500 }}>{verse.error}</span>}
+            {verse?.state === 'ok' && (
+              <div className="card" style={{ background: '#FAF8F3', fontWeight: 400, fontSize: 14, lineHeight: 1.6 }}>
+                <strong>{verse.reference}</strong> <span className="hint">· {verse.translation}</span>
+                <div style={{ fontFamily: 'Georgia, serif', marginTop: 4 }}>{verse.text}</div>
+              </div>
+            )}
+          </div>
           <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
             <label className="field grow">Theme
               <select value={f.theme_id} onChange={set('theme_id')}><option value="">Choose…</option>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
@@ -329,7 +364,7 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
               <p style={{ fontSize: 14 }}>{f.summary || 'Your summary appears here. Keep it short enough to read in under a minute.'}</p>
               <div className="small" style={{ color: 'var(--soft)', fontSize: 11 }}>by {profile.name || profile.email}</div>
             </div>
-            <div className="read-more" style={{ minHeight: 60 }}><strong style={{ fontSize: 14 }}>{f.link ? 'Tap to read more' : 'No read-more link'}</strong></div>
+            <div className="read-more" style={{ minHeight: 60 }}><strong style={{ fontSize: 14 }}>{verse?.state === 'ok' ? 'Tap to read ' + verse.reference : f.link ? 'Tap to read more' : 'No read-more link'}</strong></div>
           </div>
         </div>
       </div>

@@ -108,3 +108,9 @@ end;
 $$;
 revoke all on function public.admin_stats(int, text) from public, anon;
 grant execute on function public.admin_stats(int, text) to authenticated;
+
+-- Bible verse attached to a story (added 26 Nov 2026)
+alter table public.stories
+  add column if not exists verse_ref text,
+  add column if not exists verse_text text,
+  add column if not exists verse_translation text;
