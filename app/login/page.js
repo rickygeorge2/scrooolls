@@ -8,6 +8,7 @@ import { Back, Logo } from '@/components/Icons';
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState('login');
+  const [showPw, setShowPw] = useState(false);
   const [next, setNext] = useState('/');
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
   const [busy, setBusy] = useState(false);
@@ -65,9 +66,20 @@ export default function LoginPage() {
           <label className="field"><span>Phone number <span className="hint">(optional)</span></span>
             <input type="tel" value={form.phone} onChange={set('phone')} autoComplete="tel" placeholder="+91" /></label>
         )}
-        <label className="field">Password
-          <input type="password" value={form.password} onChange={set('password')} autoComplete={signup ? 'new-password' : 'current-password'} required minLength={signup ? 8 : undefined} />
-        </label>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <div style={{ position: 'relative' }}>
+            <input id="password" type={showPw ? 'text' : 'password'} value={form.password} onChange={set('password')}
+              autoComplete={signup ? 'new-password' : 'current-password'} required minLength={signup ? 8 : undefined}
+              style={{ width: '100%', paddingRight: 76 }} />
+            <button type="button" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="password"
+              aria-label={showPw ? 'Hide password' : 'Show password'}
+              style={{ position: 'absolute', right: 4, top: 4, bottom: 4, minWidth: 64, border: 0, borderRadius: 10, background: '#F1EFEA', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              {showPw ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {signup && <span className="hint" style={{ fontSize: 13 }}>At least 8 characters</span>}
+        </div>
         {error && <p className="error" role="alert">{error}</p>}
         {notice && <p className="card" role="status">{notice}</p>}
         <div className="grow" />
