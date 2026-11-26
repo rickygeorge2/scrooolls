@@ -259,3 +259,8 @@ insert into public.genres (name, description, sort) values
   ('Deep Dive', 'Serious study on one passage', 4),
   ('Reading Plan', 'Bible in a Year, day by day', 5),
   ('Challenge', 'One thing to try today', 6);
+
+-- =====================================================================
+-- Analytics: daily activity, read-more taps, and the admin stats report
+-- lives in supabase/analytics.sql: run it right after this file on a fresh project.
+-- =====================================================================

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { dayName, dayStart, daysAgoOf } from '@/lib/dates';
 import { enablePush, isIOS, isStandalone, pushStatus } from '@/lib/pushClient';
 import InstallSheet from './InstallSheet';
+import { useActivity } from '@/lib/useActivity';
 import { Bell, Check, Down, Up } from './Icons';
 
 export default function Feed({ profile }) {
@@ -22,6 +23,7 @@ export default function Feed({ profile }) {
   const read = useRef(new Set());
   const start = useRef(null);
   const lastWheel = useRef(0);
+  useActivity(profile.id);
 
   // Lookups for theme colours and genre names
   useEffect(() => {
@@ -92,6 +94,11 @@ export default function Feed({ profile }) {
     read.current.add(story.id);
     supabase.from('reads').upsert({ user_id: profile.id, story_id: story.id }, { onConflict: 'user_id,story_id', ignoreDuplicates: true }).then(() => {});
   }, [profile.id]);
+
+  const openedLink = useCallback((story) => {
+    markRead(story);
+    supabase.from('reads').upsert({ user_id: profile.id, story_id: story.id, opened_link: true }, { onConflict: 'user_id,story_id' }).then(() => {});
+  }, [profile.id, markRead]);
 
   const next = useCallback(() => {
     setIdx((i) => { markRead(queue[i]); return Math.min(i + 1, queue.length); });
@@ -173,7 +180,7 @@ export default function Feed({ profile }) {
                     </div>
                   </div>
                   {s.link ? (
-                    <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => markRead(s)} tabIndex={i === idx ? 0 : -1}>
+                    <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
                       <strong style={{ fontSize: 15 }}>Tap to read more</strong>
                       <span style={{ fontSize: 12, color: '#C9CCD6' }}>Opens the full article</span>
                     </a>

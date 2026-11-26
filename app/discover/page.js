@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/useAuth';
 import { enablePush, pushStatus } from '@/lib/pushClient';
 import InstallSheet from '@/components/InstallSheet';
 import { Back, Chevron } from '@/components/Icons';
+import { useActivity } from '@/lib/useActivity';
 
 const HOURS = [5, 6, 7, 8, 9, 10];
 const hourLabel = (h) => (h > 12 ? h - 12 : h) + ':00 ' + (h >= 12 ? 'PM' : 'AM');
@@ -23,6 +24,7 @@ export default function Discover() {
   const [push, setPush] = useState('default');
   const [sheet, setSheet] = useState(false);
   const start = useRef(null);
+  useActivity(profile?.id);
 
   useEffect(() => { if (!loading && !session) router.replace('/'); }, [loading, session, router]);
 

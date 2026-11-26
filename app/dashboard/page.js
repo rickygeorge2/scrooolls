@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { authHeader, useAuth } from '@/lib/useAuth';
 import BulkUpload from '@/components/BulkUpload';
+import Analytics from '@/components/Analytics';
 
 const STATUS = {
   published: ['Published', 'var(--ok-bg)', 'var(--ok)'],
@@ -122,7 +123,7 @@ export default function Dashboard() {
   const pendingStories = stories.filter((s) => s.status === 'pending').length;
   const pendingApps = apps.filter((a) => a.status === 'pending').length;
   const nav = isAdmin
-    ? [['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['tax', 'Themes & genres', 0]]
+    ? [['analytics', 'Analytics', 0], ['stories', 'Stories', pendingStories], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0], ['apps', 'Applications', pendingApps], ['push', 'Push notifications', 0], ['tax', 'Themes & genres', 0]]
     : [['stories', 'My stories', 0], ['new', 'New story', 0], ['bulk', 'Bulk upload', 0]];
   const themeName = (id) => themes.find((t) => t.id === id)?.name || '—';
   const genreName = (id) => genres.find((g) => g.id === id)?.name || '—';
@@ -220,6 +221,8 @@ export default function Dashboard() {
           <BulkUpload profile={profile} isAdmin={isAdmin} themes={themes} genres={genres} notify={notify} flash={flash}
             onDone={() => { loadStories(); if (isAdmin) loadAdmin(); }} />
         )}
+
+        {tab === 'analytics' && isAdmin && <Analytics />}
 
         {tab === 'apps' && isAdmin && <Applications apps={apps} reload={loadAdmin} flash={flash} />}
         {tab === 'push' && isAdmin && <Push log={log} reload={loadAdmin} flash={flash} />}
