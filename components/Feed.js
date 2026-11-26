@@ -184,7 +184,6 @@ export default function Feed({ profile }) {
                   {s.link ? (
                     <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
                       <strong style={{ fontSize: 15 }}>Tap to read more</strong>
-                      <span style={{ fontSize: 12, color: '#C9CCD6' }}>Opens the full article</span>
                     </a>
                   ) : (
                     <div className="read-more"><strong style={{ fontSize: 15 }}>Swipe up for the next story</strong></div>
