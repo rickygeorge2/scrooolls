@@ -223,7 +223,7 @@ export default function Dashboard() {
             onDone={() => { loadStories(); if (isAdmin) loadAdmin(); }} />
         )}
 
-        {tab === 'analytics' && isAdmin && <Analytics />}
+        {tab === 'analytics' && isAdmin && <Analytics flash={flash} />}
 
         {tab === 'apps' && isAdmin && <Applications apps={apps} reload={loadAdmin} flash={flash} />}
         {tab === 'push' && isAdmin && <Push log={log} reload={loadAdmin} flash={flash} />}

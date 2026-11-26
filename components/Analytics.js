@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { authHeader } from '@/lib/useAuth';
 
 const RANGES = [[7, '7 days'], [30, '30 days'], [90, '90 days']];
 const num = (n) => Number(n || 0).toLocaleString();
@@ -63,11 +64,24 @@ function DailyBars({ title, data, field, format = num }) {
   );
 }
 
-export default function Analytics() {
+export default function Analytics({ flash = () => {} }) {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [deleting, setDeleting] = useState(null);
+
+  async function removePerson(p) {
+    const who = (p.name || 'this person') + ' (' + p.email + ')';
+    if (!window.confirm('Permanently delete ' + who + '?\n\nTheir account, reading history and notification settings will be erased and cannot be recovered. Any stories they published will stay up.')) return;
+    setDeleting(p.id);
+    const res = await fetch('/api/admin/delete-user', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ userId: p.id }) });
+    const out = await res.json().catch(() => ({}));
+    setDeleting(null);
+    if (!res.ok) return flash('Could not delete: ' + (out.error || res.status));
+    flash('Deleted ' + p.email);
+    load();
+  }
 
   const load = useCallback(async () => {
     setError('');
@@ -161,10 +175,10 @@ export default function Analytics() {
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table>
-            <thead><tr><th>Name</th><th>Joined</th><th>Last active</th><th style={{ textAlign: 'right' }}>Days active</th><th style={{ textAlign: 'right' }}>Time spent</th><th style={{ textAlign: 'right' }}>Stories read</th><th>Notifications</th></tr></thead>
+            <thead><tr><th>Name</th><th>Joined</th><th>Last active</th><th style={{ textAlign: 'right' }}>Days active</th><th style={{ textAlign: 'right' }}>Time spent</th><th style={{ textAlign: 'right' }}>Stories read</th><th>Notifications</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
               {people.map((p) => (
-                <tr key={p.email}>
+                <tr key={p.id}>
                   <td><div style={{ fontWeight: 600 }}>{p.name || '—'}{p.role !== 'reader' && <span className="pill" style={{ marginLeft: 6, background: '#F1EFEA' }}>{p.role}</span>}</div><div className="small muted">{p.email}</div></td>
                   <td className="small">{new Date(p.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   <td className="small">{ago(p.last_seen)}</td>
@@ -172,6 +186,12 @@ export default function Analytics() {
                   <td style={{ textAlign: 'right' }}>{mins(p.minutes)}</td>
                   <td style={{ textAlign: 'right' }}>{num(p.reads)}</td>
                   <td className="small">{p.notifications ? 'On' : 'Off'}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {p.role !== 'admin' && (
+                      <button className="btn small ghost" style={{ color: 'var(--bad)' }} disabled={deleting !== null} onClick={() => removePerson(p)}
+                        aria-label={'Delete ' + (p.name || p.email)}>{deleting === p.id ? 'Deleting…' : 'Delete'}</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -91,7 +91,7 @@ begin
     ),
     'people', (
       select coalesce(json_agg(p), '[]'::json) from (
-        select pr.name, pr.email, pr.role, pr.created_at,
+        select pr.id, pr.name, pr.email, pr.role, pr.created_at,
           (select max(last_seen) from activity a where a.user_id = pr.id) as last_seen,
           (select count(*) from activity a where a.user_id = pr.id and a.day >= v_from) as days_active,
           (select coalesce(sum(seconds), 0) / 60 from activity a where a.user_id = pr.id and a.day >= v_from) as minutes,
