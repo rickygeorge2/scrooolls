@@ -161,6 +161,19 @@ $$;
 create trigger stories_defaults before insert or update on public.stories
   for each row execute function public.story_defaults();
 
+-- When someone changes their name, update it on their stories too
+create or replace function public.sync_author_name() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.name is distinct from old.name then
+    update stories set author_name = coalesce(new.name, new.email) where author_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+create trigger profiles_sync_author_name after update on public.profiles
+  for each row execute function public.sync_author_name();
+
 -- Public list of contributors (name + bio only, never email/phone)
 create or replace view public.contributors as
   select id, name, bio from public.profiles where role = 'contributor';
@@ -213,6 +226,16 @@ create policy "admin decides" on public.applications for update using (is_admin(
 -- push
 create policy "own subscriptions" on public.push_subscriptions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "admin reads push log" on public.push_log for select using (is_admin());
+
+-- =====================================================================
+-- Table permissions (newer Supabase projects don't grant these automatically;
+-- the security rules above still decide which rows each person can see)
+-- =====================================================================
+grant usage on schema public to anon, authenticated, service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated, service_role;
+grant usage, select on all sequences in schema public to authenticated, service_role;
+grant select on public.themes, public.genres, public.contributors to anon;
+grant execute on function public.is_admin(), public.is_staff() to anon, authenticated, service_role;
 
 -- =====================================================================
 -- Image storage

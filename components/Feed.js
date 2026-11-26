@@ -50,21 +50,27 @@ export default function Feed({ profile }) {
       const { data: reads } = await supabase.from('reads').select('story_id').eq('user_id', profile.id).in('story_id', list.map((s) => s.id));
       (reads || []).forEach((r) => read.current.add(r.story_id));
     }
-    // Today: only what you haven't read. Older days: unread, or everything if you've read it all.
-    const unread = list.filter((s) => !read.current.has(s.id));
-    let q = day === 0 || unread.length ? unread : list;
-    // Opened from a notification? Put that story first.
+    // Every story from that day stays in the feed, newest first.
+    // You start at the first one you haven't read, and can swipe back to the ones you have.
+    let q = list;
+    let startAt = q.findIndex((s) => !read.current.has(s.id));
+    if (startAt === -1) startAt = q.length; // all read: start on the "caught up" card
+    // Opened from a notification? Start on that story.
     const wanted = new URLSearchParams(window.location.search).get('story');
     if (wanted && day === 0) {
-      const { data: s } = await supabase.from('stories').select('*').eq('id', wanted).maybeSingle();
-      if (s) q = [s, ...q.filter((x) => x.id !== s.id)];
+      const found = q.findIndex((x) => x.id === wanted);
+      if (found >= 0) startAt = found;
+      else {
+        const { data: s } = await supabase.from('stories').select('*').eq('id', wanted).maybeSingle();
+        if (s) { q = [s, ...q]; startAt = 0; }
+      }
       window.history.replaceState(null, '', '/');
     }
     const { data: older } = await supabase.from('stories').select('published_at').eq('status', 'published')
       .lt('published_at', from.toISOString()).order('published_at', { ascending: false }).limit(1);
     setOlderDay(older && older[0] ? daysAgoOf(older[0].published_at) : null);
     setQueue(q);
-    setIdx(0);
+    setIdx(startAt);
     setLoading(false);
   }, [profile.id]);
 
@@ -155,7 +161,8 @@ export default function Feed({ profile }) {
                         <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 34, lineHeight: 1.05 }}>{genre?.name || ''}</div>
                       </>
                     )}
-                    {isToday && mode.kind === 'day' && <span className="story-day">New today</span>}
+                    {read.current.has(s.id) ? <span className="story-day" style={{ background: '#fff', color: 'var(--ink)' }}>Read ✓</span>
+                      : isToday && mode.kind === 'day' && <span className="story-day">New today</span>}
                     {genre && <span className="story-tag">{genre.name}</span>}
                   </div>
                   <div className="story-text">
@@ -181,7 +188,7 @@ export default function Feed({ profile }) {
               <h2 className="title">{mode.kind === 'genre' ? 'That’s everything in ' + mode.name : mode.day === 0 ? (queue.length ? 'You’re all caught up for today' : 'No new stories yet today') : 'You’re all caught up'}</h2>
               <p className="lead">
                 {mode.kind === 'genre' ? 'Head back to your daily feed for today’s stories.'
-                  : mode.day === 0 ? 'You’ve read everything posted today. We’ll notify you the moment a new story goes up.'
+                  : mode.day === 0 ? 'You’ve read everything posted today. Swipe down to read any of them again. We’ll notify you the moment a new story goes up.'
                   : 'That’s everything from ' + dayName(mode.day).toLowerCase() + '.'}
               </p>
               {mode.kind === 'day' && olderDay !== null && (

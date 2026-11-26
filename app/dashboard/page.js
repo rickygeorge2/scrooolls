@@ -16,8 +16,10 @@ const fmt = (d) => (d ? new Date(d).toLocaleString(undefined, { day: 'numeric', 
 
 export default function Dashboard() {
   const router = useRouter();
-  const { loading, session, profile } = useAuth();
+  const { loading, session, profile, refresh } = useAuth();
   const [tab, setTab] = useState('stories');
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
   const [toast, setToast] = useState('');
   const [themes, setThemes] = useState([]);
   const [genres, setGenres] = useState([]);
@@ -70,6 +72,21 @@ export default function Dashboard() {
     return 'push sent to ' + (out.sent ?? 0) + ' device' + (out.sent === 1 ? '' : 's');
   }
 
+  async function saveName() {
+    const name = nameDraft.trim();
+    if (!name) return flash('Please enter a name.');
+    const { error } = await supabase.from('profiles').update({ name }).eq('id', profile.id);
+    if (error) return flash(error.message);
+    setEditingName(false);
+    await refresh();
+    loadStories();
+    flash('Name updated');
+  }
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.replace('/login?next=/dashboard');
+  }
+
   async function approve(s) {
     const { error } = await supabase.from('stories').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', s.id);
     if (error) return flash(error.message);
@@ -118,9 +135,27 @@ export default function Dashboard() {
         <div className="grow" style={{ minHeight: 24 }} />
         <div style={{ padding: 12, borderRadius: 12, background: '#23262E', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="small" style={{ color: '#C9CCD6' }}>Signed in as</div>
-          <div style={{ fontWeight: 700 }}>{profile.name || profile.email}</div>
+          {editingName ? (
+            <>
+              <label className="sr-only" htmlFor="name-edit">Your name</label>
+              <input id="name-edit" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                style={{ height: 40, borderRadius: 10, border: '1px solid #4A4E5A', background: '#15171C', color: '#fff', padding: '0 10px' }} />
+              <div className="row" style={{ gap: 6 }}>
+                <button className="btn small yellow grow" onClick={saveName}>Save</button>
+                <button className="btn small grow" style={{ background: 'transparent', border: '1px solid #4A4E5A' }} onClick={() => setEditingName(false)}>Cancel</button>
+              </div>
+            </>
+          ) : (
+            <div className="row between" style={{ gap: 6 }}>
+              <div style={{ fontWeight: 700, minWidth: 0, overflowWrap: 'anywhere' }}>{profile.name || profile.email}</div>
+              <button className="btn small" style={{ background: 'transparent', color: '#C9CCD6', height: 32, padding: '0 8px' }}
+                onClick={() => { setNameDraft(profile.name || ''); setEditingName(true); }}>Edit</button>
+            </div>
+          )}
           <span className="pill" style={{ background: 'var(--accent)', color: 'var(--ink)', alignSelf: 'flex-start' }}>{isAdmin ? 'Admin' : 'Contributor'}</span>
           <Link href="/" className="btn small" style={{ background: 'transparent', border: '1px solid #4A4E5A' }}>Open the app</Link>
+          <button className="btn small" style={{ background: 'transparent', border: '1px solid #4A4E5A' }} onClick={signOut}>Sign out</button>
         </div>
       </nav>
 
