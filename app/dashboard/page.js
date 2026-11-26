@@ -325,7 +325,7 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
             {verse?.state === 'ok' && (
               <div className="card" style={{ background: '#FAF8F3', fontWeight: 400, fontSize: 14, lineHeight: 1.6 }}>
                 <strong>{verse.reference}</strong> <span className="hint">· {verse.translation}</span>
-                <div style={{ fontFamily: 'Georgia, serif', marginTop: 4 }}>{verse.text}</div>
+                <div style={{ marginTop: 4 }}>{verse.text}</div>
               </div>
             )}
           </div>

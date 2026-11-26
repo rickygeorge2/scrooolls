@@ -8,7 +8,7 @@ export default function VerseSheet({ story, onClose, onOpenLink }) {
         <div style={{ width: 40, height: 4, borderRadius: 2, background: '#D6D3CA', alignSelf: 'center' }} aria-hidden="true" />
         <div className="small" style={{ fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--soft)' }}>{story.verse_translation || 'World English Bible'}</div>
         <h2 style={{ fontSize: 26 }}>{story.verse_ref}</h2>
-        <p style={{ fontSize: 18, lineHeight: 1.65, fontFamily: 'Georgia, "Times New Roman", serif', color: '#2A2D36' }}>{story.verse_text}</p>
+        <p style={{ fontSize: 19, fontWeight: 500, lineHeight: 1.6, color: '#2A2D36' }}>{story.verse_text}</p>
         {story.link && (
           <a className="btn" href={story.link} target="_blank" rel="noopener noreferrer" onClick={onOpenLink}>Read more</a>
         )}

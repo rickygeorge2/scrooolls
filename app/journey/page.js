@@ -95,14 +95,19 @@ export default function Journey() {
 
   const back = useCallback(() => setReading((r) => (r && r.idx > 0 ? { ...r, idx: r.idx - 1 } : r)), []);
 
-  function onPointerDown(e) { start.current = { x: e.clientX, y: e.clientY }; }
-  function onPointerUp(e) {
+  function swipeEnd(x, y) {
     if (!start.current) return;
-    const dy = e.clientY - start.current.y, dx = e.clientX - start.current.x;
+    const dy = y - start.current.y, dx = x - start.current.x;
     start.current = null;
     if (Math.abs(dy) < Math.abs(dx)) return;
     if (dy < -40) advance(); else if (dy > 40) back();
   }
+  // Phones: touch events (reliable even if the browser starts its own scroll gesture)
+  function onTouchStart(e) { const t = e.touches[0]; start.current = { x: t.clientX, y: t.clientY }; }
+  function onTouchEnd(e) { const t = e.changedTouches[0]; swipeEnd(t.clientX, t.clientY); }
+  // Computers: mouse drag
+  function onPointerDown(e) { if (e.pointerType !== 'touch') start.current = { x: e.clientX, y: e.clientY }; }
+  function onPointerUp(e) { if (e.pointerType !== 'touch') swipeEnd(e.clientX, e.clientY); }
   function onWheel(e) {
     const now = Date.now();
     if (now - lastWheel.current < 600 || Math.abs(e.deltaY) < 12) return;
@@ -132,14 +137,15 @@ export default function Journey() {
         <div style={{ height: 4, background: '#ECE9E1' }} aria-hidden="true">
           <div style={{ height: '100%', width: ((reading.idx + 1) / total) * 100 + '%', background: 'var(--accent)', transition: 'width 300ms' }} />
         </div>
-        <div className="feed-body" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onWheel={onWheel}>
+        <div className="feed-body" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onWheel={onWheel}
+          style={{ touchAction: 'none', overscrollBehavior: 'none' }}>
           {reading.verses.map((v, i) => (
             <section key={i} className="story" aria-hidden={i !== reading.idx}
-              style={{ transform: `translateY(${(i - reading.idx) * 100}%)`, background: v.kind === 'verse' ? 'var(--ground)' : v.kind === 'discover' ? '#E3ECFA' : v.kind === 'reflect' ? '#FFF1C7' : '#DDF1E3', justifyContent: 'center', padding: '32px 28px', gap: 20, overflowY: 'auto' }}>
+              style={{ transform: `translateY(${(i - reading.idx) * 100}%)`, background: v.kind === 'verse' ? 'var(--ground)' : v.kind === 'discover' ? '#E3ECFA' : v.kind === 'reflect' ? '#FFF1C7' : '#DDF1E3', justifyContent: 'center', padding: '32px 28px', gap: 20 }}>
               {v.kind === 'verse' ? (
                 <>
                   <div className="small" style={{ fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--soft)' }}>{v.ref}</div>
-                  <p style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: v.text.length > 220 ? 22 : 26, lineHeight: 1.5, color: '#1F2128' }}>{v.text}</p>
+                  <p style={{ fontSize: v.text.length > 220 ? 21 : 25, fontWeight: 500, lineHeight: 1.5, letterSpacing: '-0.01em', color: '#1F2128' }}>{v.text}</p>
                 </>
               ) : (
                 <>
@@ -147,7 +153,7 @@ export default function Journey() {
                     <h2 style={{ fontSize: 34 }}>{v.ref}</h2>
                     <div className="small" style={{ color: '#3A3E4A', marginTop: 4 }}>{v.sub}</div>
                   </div>
-                  <p style={{ fontSize: v.text.length > 300 ? 18 : 21, lineHeight: 1.55, color: '#1F2128', whiteSpace: 'pre-line' }}>{v.text}</p>
+                  <p style={{ fontSize: v.text.length > 400 ? 16 : v.text.length > 250 ? 18 : 21, lineHeight: 1.55, color: '#1F2128', whiteSpace: 'pre-line' }}>{v.text}</p>
                 </>
               )}
               <div className="small muted" style={{ marginTop: 12 }}>{i === total - 1 ? 'Swipe up to finish today’s reading' : 'Swipe up to keep going'}</div>

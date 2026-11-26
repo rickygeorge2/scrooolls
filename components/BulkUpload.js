@@ -213,7 +213,7 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
                     )}
                     {r.verseState === 'ok' && (
                       <div className="small" style={{ background: '#FAF8F3', borderRadius: 8, padding: '6px 8px', lineHeight: 1.5 }}>
-                        <strong>{r.verseRef}</strong> · <span style={{ fontFamily: 'Georgia, serif' }}>{r.verseText.length > 160 ? r.verseText.slice(0, 157) + '…' : r.verseText}</span>
+                        <strong>{r.verseRef}</strong> · <span>{r.verseText.length > 160 ? r.verseText.slice(0, 157) + '…' : r.verseText}</span>
                       </div>
                     )}
                     <div className="small" style={{ color: 'var(--soft)' }}>{timing}{r.link ? ' · has read-more link' : ''}</div>
