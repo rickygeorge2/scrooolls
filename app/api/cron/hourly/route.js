@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabaseAdmin';
 import { notifyStory, sendToSubscriptions } from '@/lib/push';
+import plan from '@/public/journey/plan.json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,23 @@ export async function GET(request) {
       await db.from('profiles').update({ last_morning_push: u.date }).eq('id', userId);
     }
     await db.from('push_log').insert({ kind: 'morning', title: payload.title, body: payload.body, sent_count: report.morning });
+  }
+
+  // 3. "Read the Gospels in 100 days" reminders, at each reader's chosen hour, if today's reading isn't done.
+  report.journey = 0;
+  const { data: journeys } = await db.from('journeys').select('user_id, reminder_hour, current_day, completed_on, last_reminder_on, finished_at, profiles(timezone)').is('finished_at', null);
+  for (const j of journeys || []) {
+    const now = localParts(j.profiles?.timezone || 'Asia/Kolkata');
+    if (!now || now.hour !== j.reminder_hour || j.completed_on === now.date || j.last_reminder_on === now.date) continue;
+    const { data: subs } = await db.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('user_id', j.user_id);
+    await db.from('journeys').update({ last_reminder_on: now.date }).eq('user_id', j.user_id);
+    if (!subs || !subs.length) continue;
+    const day = plan.days[j.current_day - 1];
+    report.journey += await sendToSubscriptions(subs, {
+      title: `Day ${j.current_day} of 100 is ready`,
+      body: day ? `${day.label} · ${day.count} scrolls. Keep your streak going!` : 'Your Gospel reading is ready.',
+      url: '/journey', tag: 'journey',
+    });
   }
 
   return NextResponse.json(report);

@@ -114,3 +114,7 @@ alter table public.stories
   add column if not exists verse_ref text,
   add column if not exists verse_text text,
   add column if not exists verse_translation text;
+
+-- "Read the Gospels in 100 days" (journeys, journey_badges and the journey_* functions)
+-- was applied to the live project as the Supabase migration "gospel_journey" on 26 Nov 2026.
+-- Reading files live in public/journey/ and are built with scripts/build_journey.py.

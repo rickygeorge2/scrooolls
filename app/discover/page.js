@@ -23,6 +23,7 @@ export default function Discover() {
   const [picked, setPicked] = useState([]);
   const [push, setPush] = useState('default');
   const [sheet, setSheet] = useState(false);
+  const [journey, setJourney] = useState(null);
   const start = useRef(null);
   useActivity(profile?.id);
 
@@ -36,6 +37,7 @@ export default function Discover() {
     supabase.from('follows').select('contributor_id').eq('user_id', profile.id).then(({ data }) => setFollows((data || []).map((r) => r.contributor_id)));
     supabase.from('user_themes').select('theme_id').eq('user_id', profile.id).then(({ data }) => setPicked((data || []).map((r) => r.theme_id)));
     setPush(pushStatus());
+    supabase.rpc('journey_state').then(({ data }) => setJourney(data || { started: false }));
   }, [profile]);
 
   async function toggleFollow(id) {
@@ -87,6 +89,18 @@ export default function Discover() {
         <Link href="/" className="btn ghost" style={{ padding: '0 6px', color: 'var(--ink)', fontWeight: 600 }}><Back /> Feed</Link>
         <h1 style={{ fontSize: 22 }}>Discover</h1>
       </div>
+      <Link href="/journey" className="card" style={{ textDecoration: 'none', background: 'var(--ink)', color: '#fff', border: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>100</div>
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Read the Gospels in 100 days</div>
+          <div className="small" style={{ color: '#C9CCD6', marginTop: 2 }}>
+            {journey?.started
+              ? (journey.finished ? 'Completed. Well done!' : `Day ${journey.current_day} · ${journey.streak} day streak${journey.done_today ? ' · done for today' : ''}`)
+              : 'One verse at a time. Start your journey.'}
+          </div>
+        </div>
+        <Chevron c="#fff" />
+      </Link>
       <div className="seg">
         {[['contributors', 'Contributors'], ['themes', 'Themes'], ['genres', 'Genres'], ['me', 'Me']].map(([id, l]) => (
           <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{l}</button>
