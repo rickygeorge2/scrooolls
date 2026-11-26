@@ -13,7 +13,7 @@ create extension if not exists pg_net;
 
 select cron.schedule(
   'scrooolls-hourly',
-  '0 * * * *',
+  '30 * * * *',  -- the server clock is UTC, so :30 UTC = the top of every hour in India (IST, UTC+5:30)
   $$
   select net.http_get(
     url := 'https://YOUR-SITE-ADDRESS/api/cron/hourly',
