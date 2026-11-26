@@ -431,7 +431,18 @@ function Push({ log, reload, flash }) {
     flash('Sent to ' + out.sent + ' device' + (out.sent === 1 ? '' : 's'));
     setF({ title: '', body: '' }); reload();
   }
-  const kinds = { story: ['New story', 'var(--ok-bg)', 'var(--ok)'], manual: ['Sent by admin', 'var(--info-bg)', 'var(--info)'], morning: ['Morning', 'var(--warn-bg)', 'var(--warn)'] };
+  const kinds = { story: ['New story', 'var(--ok-bg)', 'var(--ok)'], manual: ['Sent by admin', 'var(--info-bg)', 'var(--info)'], resend: ['Resent', 'var(--info-bg)', 'var(--info)'], morning: ['Morning', 'var(--warn-bg)', 'var(--warn)'] };
+  const [resending, setResending] = useState(null);
+  async function resend(l) {
+    if (!window.confirm('Send “' + l.title + '” to everyone again?')) return;
+    setResending(l.id);
+    const res = await fetch('/api/push/resend', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ logId: l.id }) });
+    const out = await res.json().catch(() => ({}));
+    setResending(null);
+    if (!res.ok) return flash('Could not resend: ' + (out.error || res.status));
+    flash('Resent to ' + out.sent + ' device' + (out.sent === 1 ? '' : 's'));
+    reload();
+  }
   return (
     <>
       <div>
@@ -456,6 +467,7 @@ function Push({ log, reload, flash }) {
               <span className="pill" style={{ background: bg, color: fg }}>{label}</span>
               <div className="grow" style={{ minWidth: 220 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{l.title}</div><div className="small muted">{l.body}</div></div>
               <div className="small muted">{l.sent_count} devices · {fmt(l.sent_at)}</div>
+              <button className="btn small outline" disabled={resending !== null} onClick={() => resend(l)}>{resending === l.id ? 'Sending…' : 'Resend'}</button>
             </div>
           );
         })}
