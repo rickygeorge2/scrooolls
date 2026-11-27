@@ -379,7 +379,7 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
               <p style={{ fontSize: 14 }}>{f.summary || 'Your summary appears here. Keep it short enough to read in under a minute.'}</p>
               <div className="small" style={{ color: 'var(--soft)', fontSize: 11 }}>by {profile.name || profile.email}</div>
             </div>
-            <div className="read-more" style={{ height: 56 }}><span className="arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label" style={{ fontSize: 14 }}>{verse?.state === 'ok' ? 'Tap to read ' + verse.reference : f.link ? 'Tap to read more' : 'No read-more link'}</span></div>
+            <div className="read-more" style={{ height: 56 }}><span className="label" style={{ fontSize: 14 }}>{verse?.state === 'ok' ? 'Tap to read ' + verse.reference : f.link ? 'Tap to read more' : 'No read-more link'}</span></div>
           </div>
         </div>
       </div>

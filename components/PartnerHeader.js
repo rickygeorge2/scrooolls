@@ -105,12 +105,9 @@ export default function PartnerHeader({ partner, stats, following, onFollow, onS
       {/* Website */}
       {website && (
         <a href={socialUrl('website', website)} target="_blank" rel="noopener noreferrer"
-          style={{ marginTop: 16, height: 64, borderRadius: 999, background: `linear-gradient(90deg, ${bg} 55%, ${bg}cc)`, color: fg, textDecoration: 'none',
-            display: 'flex', alignItems: 'center', padding: '0 8px', position: 'relative' }}>
-          <span style={{ width: 48, height: 48, borderRadius: 999, background: fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" stroke={bg} {...ic} strokeWidth="2.4"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </span>
-          <span style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', fontWeight: 600, fontSize: 17, pointerEvents: 'none' }}>Visit website</span>
+          style={{ marginTop: 16, height: 60, borderRadius: 999, background: `linear-gradient(90deg, ${bg} 55%, ${bg}cc)`, color: fg, textDecoration: 'none',
+            display: 'flex', alignItems: 'center', padding: '0 20px' }}>
+          <span style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 17 }}>Visit website</span>
         </a>
       )}
     </section>

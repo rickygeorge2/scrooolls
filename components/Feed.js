@@ -223,11 +223,11 @@ export default function Feed({ profile }) {
                   {s.verse_text ? (
                     <button className="read-more" style={{ border: 0, cursor: 'pointer', font: 'inherit' }} tabIndex={i === idx ? 0 : -1}
                       onClick={() => { markRead(s); setVerseStory(s); }}>
-                      <span className="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label">Tap to read {s.verse_ref}</span>
+                      <span className="label">Tap to read {s.verse_ref}</span>
                     </button>
                   ) : s.link ? (
                     <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
-                      <span className="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label">Tap to read more</span>
+                      <span className="label">Tap to read more</span>
                     </a>
                   ) : null}
                 </article>

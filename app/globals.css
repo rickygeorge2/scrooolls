@@ -59,9 +59,8 @@ p { margin: 0; }
 .story-text { padding: 30px 22px 112px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
 .story-text h2 { font-family: var(--font-body), system-ui, sans-serif; font-size: 22px; line-height: 1.25; letter-spacing: -0.01em; }
 .story-text p { font-size: 16px; line-height: 1.55; color: #3A3E4A; }
-.read-more { position: absolute; left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); height: 64px; padding: 0 8px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--ink) 55%, #3A3E4A); color: #fff; text-decoration: none; display: flex; align-items: center; gap: 12px; box-shadow: 0 6px 18px rgba(21,23,28,0.18); }
-.read-more .arrow { width: 48px; height: 48px; border-radius: var(--r-pill); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.read-more .label { flex: 1; text-align: center; padding-right: 48px; font-size: 16px; font-weight: 600; }
+.read-more { position: absolute; left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); height: 60px; padding: 0 20px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--ink) 55%, #3A3E4A); color: #fff; text-decoration: none; display: flex; align-items: center; gap: 12px; box-shadow: 0 6px 18px rgba(21,23,28,0.18); }
+.read-more .label { flex: 1; text-align: center; font-size: 16px; font-weight: 600; }
 .nav-arrows { position: absolute; right: 12px; top: 24%; display: flex; flex-direction: column; gap: 8px; z-index: 2; }
 .nav-arrows button { width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--line); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 @media (pointer: coarse) { .nav-arrows { display: none; } }
