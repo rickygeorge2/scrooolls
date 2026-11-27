@@ -94,7 +94,7 @@ export default function Discover() {
         <h1 style={{ fontSize: 22 }}>Discover</h1>
       </div>
       <Link href="/journey" className="card" style={{ textDecoration: 'none', background: 'var(--ink)', color: '#fff', border: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, background: 'var(--accent)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>100</div>
+        <div style={{ width: 52, height: 52, borderRadius: 999, background: 'var(--accent)', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 18, flexShrink: 0 }}>100</div>
         <div className="grow" style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>The Gospels in 100 Days</div>
           <div className="small" style={{ color: '#C9CCD6', marginTop: 2 }}>

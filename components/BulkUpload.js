@@ -178,21 +178,21 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
               const thumb = r.preview || (r.image && /^https:\/\//i.test(r.image) && !/drive\.google|dropbox/.test(r.image) ? r.image : '');
               return (
                 <div key={r.key} className="card" style={{ borderColor: border, display: 'flex', gap: 16, flexWrap: 'wrap', opacity: r.state === 'done' ? 0.7 : 1 }}>
-                  <div style={{ width: 120, height: 90, borderRadius: 10, background: themes.find((t) => String(t.id) === String(r.theme_id))?.color || '#F1EFEA', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#3A3E4A', textAlign: 'center', padding: 4 }}>
+                  <div style={{ width: 120, height: 90, borderRadius: 16, background: themes.find((t) => String(t.id) === String(r.theme_id))?.color || '#F1EFEA', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#3A3E4A', textAlign: 'center', padding: 4 }}>
                     {thumb ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.image ? 'Image from link' : 'No image'}
                   </div>
                   <div className="stack grow" style={{ gap: 8, minWidth: 260, flexBasis: 360 }}>
                     <label className="sr-only" htmlFor={'t' + r.key}>Title, row {i + 1}</label>
                     <input id={'t' + r.key} value={r.title} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { title: e.target.value })}
-                      style={{ fontWeight: 700, fontSize: 15, border: '1px solid transparent', borderRadius: 8, padding: '4px 6px', marginLeft: -6, background: 'transparent' }} />
+                      style={{ fontWeight: 700, fontSize: 15, border: '1px solid transparent', borderRadius: 999, padding: '4px 10px', marginLeft: -6, background: 'transparent' }} />
                     <label className="sr-only" htmlFor={'s' + r.key}>Summary, row {i + 1}</label>
                     <textarea id={'s' + r.key} rows={3} value={r.summary} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { summary: e.target.value })}
-                      style={{ fontSize: 14, lineHeight: 1.5, border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', resize: 'vertical' }} />
+                      style={{ fontSize: 14, lineHeight: 1.5, border: '1px solid var(--line)', padding: '8px 12px', resize: 'vertical' }} />
                     <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                      <select aria-label={'Theme, row ' + (i + 1)} value={r.theme_id} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { theme_id: e.target.value })} style={{ height: 36, borderRadius: 8, border: '1px solid #D6D3CA', padding: '0 8px', background: '#fff' }}>
+                      <select aria-label={'Theme, row ' + (i + 1)} value={r.theme_id} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { theme_id: e.target.value })} style={{ height: 36, border: '1px solid #D6D3CA', padding: '0 12px', background: '#fff' }}>
                         <option value="">Theme…</option>{themes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
-                      <select aria-label={'Genre, row ' + (i + 1)} value={r.genre_id} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { genre_id: e.target.value })} style={{ height: 36, borderRadius: 8, border: '1px solid #D6D3CA', padding: '0 8px', background: '#fff' }}>
+                      <select aria-label={'Genre, row ' + (i + 1)} value={r.genre_id} disabled={r.state === 'done' || busy} onChange={(e) => update(r.key, { genre_id: e.target.value })} style={{ height: 36, border: '1px solid #D6D3CA', padding: '0 12px', background: '#fff' }}>
                         <option value="">Genre…</option>{genres.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                       </select>
                       {r.state !== 'done' && (
@@ -207,12 +207,12 @@ export default function BulkUpload({ profile, isAdmin, themes, genres, notify, o
                       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
                         <label className="sr-only" htmlFor={'v' + r.key}>Bible verse, row {i + 1}</label>
                         <input id={'v' + r.key} value={r.verse} disabled={busy} onChange={(e) => update(r.key, { verse: e.target.value, verseState: 'error', verseError: 'Click Look up to check this verse' })}
-                          style={{ height: 36, borderRadius: 8, border: '1px solid #D6D3CA', padding: '0 8px', width: 180 }} />
+                          style={{ height: 36, border: '1px solid #D6D3CA', padding: '0 12px', width: 180 }} />
                         <button className="btn small outline" style={{ height: 36 }} disabled={busy || !r.verse.trim()} onClick={() => checkVerse(r.key, r.verse)}>Look up</button>
                       </div>
                     )}
                     {r.verseState === 'ok' && (
-                      <div className="small" style={{ background: '#FAF8F3', borderRadius: 8, padding: '6px 8px', lineHeight: 1.5 }}>
+                      <div className="small" style={{ background: '#FAF8F3', borderRadius: 14, padding: '8px 12px', lineHeight: 1.5 }}>
                         <strong>{r.verseRef}</strong> · <span>{r.verseText.length > 160 ? r.verseText.slice(0, 157) + '…' : r.verseText}</span>
                       </div>
                     )}

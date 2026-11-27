@@ -13,7 +13,7 @@ function ColorField({ label, value, onChange }) {
       <label htmlFor={'c-' + label}>{label} <span className="hint">hex code, e.g. #15171C</span></label>
       <div className="row" style={{ gap: 8 }}>
         <input type="color" aria-label={label + ' picker'} value={ok ? value : '#000000'} onChange={(e) => onChange(e.target.value.toUpperCase())}
-          style={{ width: 54, height: 50, padding: 2, borderRadius: 12, border: '1.5px solid #D6D3CA', background: '#fff', flexShrink: 0 }} />
+          style={{ width: 54, height: 50, padding: 2, borderRadius: 999, border: '1.5px solid #D6D3CA', background: '#fff', flexShrink: 0 }} />
         <input id={'c-' + label} className="grow" value={value} maxLength={7} onChange={(e) => {
           let v = e.target.value.trim(); if (v && !v.startsWith('#')) v = '#' + v; onChange(v.toUpperCase());
         }} style={{ fontFamily: 'ui-monospace, monospace', borderColor: ok ? undefined : 'var(--bad)' }} />

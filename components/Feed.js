@@ -199,7 +199,7 @@ export default function Feed({ profile }) {
                       const pt = partners[s.author_id];
                       const on = follows.has(pt.profile_id);
                       return (
-                        <div className="row" style={{ gap: 10, padding: '8px 10px', borderRadius: 14, background: pt.bg_color, color: pt.text_color, marginTop: 2 }}>
+                        <div className="row" style={{ gap: 10, padding: '6px 6px 6px 6px', borderRadius: 999, background: pt.bg_color, color: pt.text_color, marginTop: 2 }}>
                           <Link href={'/p/' + pt.slug} className="row grow" style={{ gap: 10, minWidth: 0, color: pt.text_color, textDecoration: 'none' }} tabIndex={i === idx ? 0 : -1}>
                             <PartnerLogo partner={pt} size={34} />
                             <span style={{ minWidth: 0 }}>
@@ -221,16 +221,16 @@ export default function Feed({ profile }) {
                     )}
                   </div>
                   {s.verse_text ? (
-                    <button className="read-more" style={{ border: 0, textAlign: 'left', cursor: 'pointer', font: 'inherit' }} tabIndex={i === idx ? 0 : -1}
+                    <button className="read-more" style={{ border: 0, cursor: 'pointer', font: 'inherit' }} tabIndex={i === idx ? 0 : -1}
                       onClick={() => { markRead(s); setVerseStory(s); }}>
-                      <strong style={{ fontSize: 15 }}>Tap to read {s.verse_ref}</strong>
+                      <span className="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label">Tap to read {s.verse_ref}</span>
                     </button>
                   ) : s.link ? (
                     <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
-                      <strong style={{ fontSize: 15 }}>Tap to read more</strong>
+                      <span className="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label">Tap to read more</span>
                     </a>
                   ) : (
-                    <div className="read-more"><strong style={{ fontSize: 15 }}>Swipe up for the next story</strong></div>
+                    <div className="read-more" style={{ background: '#fff', color: 'var(--ink)', border: '1.5px solid var(--line)', boxShadow: 'none' }}><span className="label" style={{ paddingRight: 0 }}>Swipe up for the next story</span></div>
                   )}
                 </article>
               );

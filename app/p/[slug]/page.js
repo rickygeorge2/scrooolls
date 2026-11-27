@@ -80,7 +80,7 @@ export default function PartnerPage() {
         {stories.length === 0 && <p className="muted">No stories yet. Follow to see them in your feed when they arrive.</p>}
         {stories.map((s) => (
           <Link key={s.id} href={'/?story=' + s.id} className="card row" style={{ textDecoration: 'none', gap: 12, alignItems: 'flex-start' }}>
-            {s.image_url && <img src={s.image_url} alt="" style={{ width: 72, height: 72, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />}
+            {s.image_url && <img src={s.image_url} alt="" style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover', flexShrink: 0 }} />}
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 700 }}>{s.title}</div>
               <div className="small muted" style={{ marginTop: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.summary}</div>

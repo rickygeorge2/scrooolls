@@ -171,7 +171,7 @@ export default function Analytics({ flash = () => {} }) {
         <div className="row between" style={{ flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
           <h3 style={{ fontSize: 15, fontFamily: 'var(--font-body)', fontWeight: 700 }}>People ({num(data.people.length)})</h3>
           <input aria-label="Search people" placeholder="Search name or email" value={query} onChange={(e) => setQuery(e.target.value)}
-            style={{ height: 38, borderRadius: 10, border: '1.5px solid #D6D3CA', padding: '0 12px', minWidth: 220 }} />
+            style={{ height: 38, border: '1.5px solid #D6D3CA', padding: '0 12px', minWidth: 220 }} />
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table>

@@ -143,14 +143,14 @@ export default function Dashboard() {
           </button>
         ))}
         <div className="grow" style={{ minHeight: 24 }} />
-        <div style={{ padding: 12, borderRadius: 12, background: '#23262E', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: 14, borderRadius: 22, background: '#23262E', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="small" style={{ color: '#C9CCD6' }}>Signed in as</div>
           {editingName ? (
             <>
               <label className="sr-only" htmlFor="name-edit">Your name</label>
               <input id="name-edit" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
-                style={{ height: 40, borderRadius: 10, border: '1px solid #4A4E5A', background: '#15171C', color: '#fff', padding: '0 10px' }} />
+                style={{ height: 40, border: '1px solid #4A4E5A', background: '#15171C', color: '#fff', padding: '0 10px' }} />
               <div className="row" style={{ gap: 6 }}>
                 <button className="btn small yellow grow" onClick={saveName}>Save</button>
                 <button className="btn small grow" style={{ background: 'transparent', border: '1px solid #4A4E5A' }} onClick={() => setEditingName(false)}>Cancel</button>
@@ -360,7 +360,7 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
           {isAdmin ? (
             <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
               <button className="btn" disabled={busy} onClick={() => save('published')}>{busy ? 'Saving…' : 'Publish now'}</button>
-              <input type="datetime-local" aria-label="Schedule date and time" value={f.when} onChange={set('when')} style={{ height: 54, borderRadius: 16, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
+              <input type="datetime-local" aria-label="Schedule date and time" value={f.when} onChange={set('when')} style={{ height: 54, border: '1.5px solid #D6D3CA', padding: '0 16px' }} />
               <button className="btn outline" disabled={busy} onClick={() => save('scheduled')}>Schedule</button>
             </div>
           ) : (
@@ -379,7 +379,7 @@ function NewStory({ profile, isAdmin, themes, genres, onDone, onError }) {
               <p style={{ fontSize: 14 }}>{f.summary || 'Your summary appears here. Keep it short enough to read in under a minute.'}</p>
               <div className="small" style={{ color: 'var(--soft)', fontSize: 11 }}>by {profile.name || profile.email}</div>
             </div>
-            <div className="read-more" style={{ minHeight: 60 }}><strong style={{ fontSize: 14 }}>{verse?.state === 'ok' ? 'Tap to read ' + verse.reference : f.link ? 'Tap to read more' : 'No read-more link'}</strong></div>
+            <div className="read-more" style={{ height: 56 }}><span className="arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label" style={{ fontSize: 14 }}>{verse?.state === 'ok' ? 'Tap to read ' + verse.reference : f.link ? 'Tap to read more' : 'No read-more link'}</span></div>
           </div>
         </div>
       </div>
@@ -554,7 +554,7 @@ function Taxonomy({ themes, genres, interest, readers, reload, flash }) {
             </div>
           ))}
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-            <input aria-label="New theme name" value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} placeholder="Add a theme, e.g. Forgiveness" style={{ flex: '1 1 200px', height: 42, borderRadius: 10, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
+            <input aria-label="New theme name" value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} placeholder="Add a theme, e.g. Forgiveness" style={{ flex: '1 1 200px', height: 42, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
             <input aria-label="Theme colour" type="color" value={t.color} onChange={(e) => setT({ ...t, color: e.target.value })} style={{ width: 48, height: 42, border: 0, background: 'none' }} />
             <button className="btn small" onClick={() => add('themes', t, () => setT({ name: '', color: '#FFD666' }))}>Add</button>
           </div>
@@ -567,8 +567,8 @@ function Taxonomy({ themes, genres, interest, readers, reload, flash }) {
               <button className="btn small ghost" onClick={() => del('genres', x)} aria-label={'Remove ' + x.name}>Remove</button>
             </div>
           ))}
-          <input aria-label="New genre name" value={g.name} onChange={(e) => setG({ ...g, name: e.target.value })} placeholder="Add a genre, e.g. Verse of the Day" style={{ height: 42, borderRadius: 10, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
-          <input aria-label="New genre description" value={g.description} onChange={(e) => setG({ ...g, description: e.target.value })} placeholder="Short description (optional)" style={{ height: 42, borderRadius: 10, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
+          <input aria-label="New genre name" value={g.name} onChange={(e) => setG({ ...g, name: e.target.value })} placeholder="Add a genre, e.g. Verse of the Day" style={{ height: 42, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
+          <input aria-label="New genre description" value={g.description} onChange={(e) => setG({ ...g, description: e.target.value })} placeholder="Short description (optional)" style={{ height: 42, border: '1.5px solid #D6D3CA', padding: '0 12px' }} />
           <button className="btn small" onClick={() => add('genres', g, () => setG({ name: '', description: '' }))}>Add genre</button>
         </div>
       </div>

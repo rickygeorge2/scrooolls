@@ -74,7 +74,7 @@ export default function LoginPage() {
               style={{ width: '100%', paddingRight: 76 }} />
             <button type="button" onClick={() => setShowPw(!showPw)} aria-pressed={showPw} aria-controls="password"
               aria-label={showPw ? 'Hide password' : 'Show password'}
-              style={{ position: 'absolute', right: 4, top: 4, bottom: 4, minWidth: 64, border: 0, borderRadius: 10, background: '#F1EFEA', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ position: 'absolute', right: 4, top: 4, bottom: 4, minWidth: 64, border: 0, borderRadius: 999, background: '#F1EFEA', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               {showPw ? 'Hide' : 'Show'}
             </button>
           </div>
