@@ -74,8 +74,10 @@ export default function Feed({ profile }) {
     // swipe up for newer stories, swipe down for older ones. You start at the oldest one you
     // haven't read yet, so swiping up always brings something new.
     let q = list;
-    let startAt = q.findIndex((s) => !read.current.has(s.id));
-    if (startAt === -1) startAt = q.length; // all read: start on the "caught up" card
+    // Today: start at the first story you haven't read (or the "caught up" card if you've read them all).
+    // Earlier days: always start from that day's first story.
+    let startAt = day === 0 ? q.findIndex((s) => !read.current.has(s.id)) : 0;
+    if (startAt === -1) startAt = q.length;
     // Opened from a notification? Start on that story.
     const wanted = new URLSearchParams(window.location.search).get('story');
     if (wanted && day === 0) {
