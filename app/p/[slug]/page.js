@@ -15,7 +15,8 @@ export default function PartnerPage() {
   const { loading, session, profile } = useAuth();
   const [partner, setPartner] = useState(undefined);
   const [stories, setStories] = useState([]);
-  const [followers, setFollowers] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [shared, setShared] = useState('');
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -25,10 +26,10 @@ export default function PartnerPage() {
       if (!data) return;
       const [{ data: s }, { data: n }] = await Promise.all([
         supabase.from('stories').select('id, title, summary, image_url, published_at').eq('author_id', data.profile_id).eq('status', 'published').order('published_at', { ascending: false }).limit(30),
-        supabase.rpc('follower_count', { p_profile: data.profile_id }),
+        supabase.rpc('partner_stats', { p_profile: data.profile_id }),
       ]);
       setStories(s || []);
-      setFollowers(typeof n === 'number' ? n : null);
+      setStats(n || { posts: 0, followers: 0, reads: 0 });
     });
   }, [slug]);
 
@@ -42,8 +43,16 @@ export default function PartnerPage() {
     const next = !following;
     await setFollow(profile.id, partner.profile_id, next);
     setFollowing(next);
-    setFollowers((n) => (typeof n === 'number' ? n + (next ? 1 : -1) : n));
+    setStats((st) => (st ? { ...st, followers: Math.max(0, st.followers + (next ? 1 : -1)) } : st));
     setBusy(false);
+  }
+
+  async function share() {
+    const url = window.location.origin + '/p/' + slug;
+    try {
+      if (navigator.share) await navigator.share({ title: partner.name + ' on Scrooolls', url });
+      else { await navigator.clipboard.writeText(url); setShared('Link copied'); setTimeout(() => setShared(''), 2000); }
+    } catch {}
   }
 
   if (partner === undefined || loading) return <main className="screen" style={{ justifyContent: 'center', alignItems: 'center' }}><p className="muted">Loading…</p></main>;
@@ -57,14 +66,16 @@ export default function PartnerPage() {
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: '0 auto', minHeight: '100dvh', background: 'var(--ground)' }}>
-      <div style={{ background: partner.bg_color, paddingTop: 'env(safe-area-inset-top)' }}>
-        <button className="icon-btn" aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/discover'))} style={{ margin: '8px 0 0 8px' }}>
-          <Back c={partner.text_color} />
-        </button>
-      </div>
-      <PartnerHeader partner={partner} followers={followers} following={following} onFollow={toggle} busy={busy} />
-      <div className="stack" style={{ padding: 20, gap: 12 }}>
+    <main style={{ maxWidth: 520, margin: '0 auto', minHeight: '100dvh', background: 'var(--ground)', padding: 'max(14px, env(safe-area-inset-top)) 14px 32px' }}>
+      <PartnerHeader partner={partner} stats={stats} following={following} onFollow={toggle} onShare={share} busy={busy}
+        topLeft={(
+          <button aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/discover'))}
+            style={{ width: 40, height: 40, borderRadius: 999, border: 0, background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Back />
+          </button>
+        )} />
+      {shared && <div className="toast" role="status">{shared}</div>}
+      <div className="stack" style={{ padding: '22px 6px 0', gap: 12 }}>
         <h2 style={{ fontSize: 18 }}>Stories from {partner.name}</h2>
         {stories.length === 0 && <p className="muted">No stories yet. Follow to see them in your feed when they arrive.</p>}
         {stories.map((s) => (

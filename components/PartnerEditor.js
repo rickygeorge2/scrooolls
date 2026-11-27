@@ -110,9 +110,9 @@ export default function PartnerEditor({ profileId, flash, onSaved }) {
       </div>
       <div className="side stack" style={{ gap: 10 }}>
         <div className="small" style={{ fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--soft)' }}>Live preview</div>
-        <div className="phone" style={{ height: 'auto', minHeight: 420 }}>
-          <PartnerHeader partner={{ ...p, bg_color: HEX.test(p.bg_color) ? p.bg_color : '#15171C', text_color: HEX.test(p.text_color) ? p.text_color : '#FFFFFF' }} followers={0} following={false} onFollow={() => {}} />
-          <div style={{ padding: 16 }} className="small muted">Their stories appear here.</div>
+        <div style={{ background: 'var(--ground)', borderRadius: 24, padding: 12, border: '1px solid var(--line)' }}>
+          <PartnerHeader partner={{ ...p, bg_color: HEX.test(p.bg_color) ? p.bg_color : '#15171C', text_color: HEX.test(p.text_color) ? p.text_color : '#FFFFFF' }} stats={{ posts: 0, followers: 0, reads: 0 }} following={false} onFollow={() => {}} onShare={() => {}} />
+          <div style={{ padding: '14px 6px 2px' }} className="small muted">Your stories appear below this card.</div>
         </div>
         <a className="btn small outline" href={'/p/' + slugify(p.slug)} target="_blank" rel="noopener noreferrer">Open the live page</a>
       </div>
