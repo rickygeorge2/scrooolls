@@ -229,9 +229,7 @@ export default function Feed({ profile }) {
                     <a className="read-more" href={s.link} target="_blank" rel="noopener noreferrer" onClick={() => openedLink(s)} tabIndex={i === idx ? 0 : -1}>
                       <span className="arrow" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15171C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg></span><span className="label">Tap to read more</span>
                     </a>
-                  ) : (
-                    <div className="read-more" style={{ background: '#fff', color: 'var(--ink)', border: '1.5px solid var(--line)', boxShadow: 'none' }}><span className="label" style={{ paddingRight: 0 }}>Swipe up for the next story</span></div>
-                  )}
+                  ) : null}
                 </article>
               );
             })}
