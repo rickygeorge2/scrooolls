@@ -94,6 +94,26 @@ export default function Dashboard() {
     window.location.replace('/login?next=/dashboard');
   }
 
+  const [reposting, setReposting] = useState(false);
+  async function repostArchive() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+    const { data: pre, error } = await supabase.rpc('repost_from_archive', { p_tz: tz, p_preview: true });
+    if (error) return flash(error.message);
+    const slots = (pre.slots || []).map((s) => new Date(s));
+    if (!slots.length) return flash('Every hour from now until 6 PM already has a story. Nothing to fill.');
+    const n = Math.min(slots.length, pre.available);
+    if (!n) return flash('There are no older stories in the archive to repost yet.');
+    const t = (d) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const when = (new Date(pre.day + 'T00:00:00').toDateString() === new Date().toDateString() ? 'today' : 'tomorrow');
+    if (!window.confirm(`Repost ${n} random stor${n === 1 ? 'y' : 'ies'} from the archive, one an hour from ${t(slots[0])} to ${t(slots[n - 1])} ${when}?\n\nEach goes out with a notification to everyone. Hours that already have a story are left alone.`)) return;
+    setReposting(true);
+    const { data, error: e2 } = await supabase.rpc('repost_from_archive', { p_tz: tz, p_preview: false });
+    setReposting(false);
+    if (e2) return flash(e2.message);
+    flash(`${(data.scheduled || []).length} archive stories scheduled ${when}, one every hour`);
+    loadStories();
+  }
+
   async function approve(s) {
     // A contributor can ask for a publish date. If it's still ahead, schedule it; otherwise publish now.
     const later = s.scheduled_for && new Date(s.scheduled_for) > new Date();
@@ -177,7 +197,10 @@ export default function Dashboard() {
                 <h1 className="title">{isAdmin ? 'Stories' : 'My stories'}</h1>
                 <p className="muted" style={{ marginTop: 6 }}>{isAdmin ? 'Everything in the feed, plus contributor stories waiting for review.' : 'Your submissions and their status.'}</p>
               </div>
-              <button className="btn small" onClick={() => setTab('new')}>+ New story</button>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {isAdmin && <button className="btn small outline" disabled={reposting} onClick={repostArchive} title="Fill empty hours until 6 PM with random older stories">{reposting ? 'Scheduling…' : 'Repost from archive'}</button>}
+                <button className="btn small" onClick={() => setTab('new')}>+ New story</button>
+              </div>
             </div>
             <div className="table-wrap">
               <table>
@@ -189,7 +212,7 @@ export default function Dashboard() {
                     const push = s.notified_at ? 'Sent ✓' : s.status === 'pending' ? 'Sends on approval' : s.status === 'scheduled' ? 'Sends when live' : '—';
                     return (
                       <tr key={s.id}>
-                        <td style={{ fontWeight: 600, maxWidth: 320 }}>{s.title}<div className="small muted" style={{ fontWeight: 400 }}>{s.status === 'scheduled' ? 'Goes live ' + fmt(s.scheduled_for) : s.status === 'pending' && s.scheduled_for ? 'Requested for ' + fmt(s.scheduled_for) : fmt(s.published_at || s.created_at)}</div></td>
+                        <td style={{ fontWeight: 600, maxWidth: 320 }}>{s.title}{s.reposted_from && <span className="pill" style={{ marginLeft: 6, background: '#F1EFEA', fontSize: 10 }}>Repost</span>}<div className="small muted" style={{ fontWeight: 400 }}>{s.status === 'scheduled' ? 'Goes live ' + fmt(s.scheduled_for) : s.status === 'pending' && s.scheduled_for ? 'Requested for ' + fmt(s.scheduled_for) : fmt(s.published_at || s.created_at)}</div></td>
                         <td>{themeName(s.theme_id)}</td>
                         <td>{genreName(s.genre_id)}</td>
                         <td>{s.author_name}</td>
